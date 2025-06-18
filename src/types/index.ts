@@ -7,6 +7,12 @@ export interface Product {
   stock: number;
 }
 
+// Cart types
+export interface CartItem {
+  product: Product;
+  quantity: number;
+}
+
 // Customer types
 export interface CustomerInfo {
   firstName: string;

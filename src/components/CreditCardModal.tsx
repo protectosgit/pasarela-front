@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../hooks/useRedux';
-import { setTransactionInfo } from '../redux/paymentSlice';
+import { setTransactionInfo, clearCart } from '../redux/paymentSlice';
 
 interface CreditCardModalProps {
   onClose: () => void;
@@ -16,7 +16,7 @@ declare global {
 const CreditCardModal: React.FC<CreditCardModalProps> = ({ onClose }) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { product } = useAppSelector((state) => state.payment);
+  const { cartItems, cartTotal } = useAppSelector((state) => state.payment);
   const checkoutRef = useRef<any>(null);
 
   useEffect(() => {
@@ -27,11 +27,11 @@ const CreditCardModal: React.FC<CreditCardModalProps> = ({ onClose }) => {
     document.body.appendChild(script);
 
     script.onload = () => {
-      if (product) {
+      if (cartItems.length > 0) {
         const checkout = new window.WidgetCheckout({
           currency: 'COP',
-          amountInCents: Math.round(product.price * 100),
-          reference: `PROD-${product.id}-${Date.now()}`,
+          amountInCents: Math.round(cartTotal * 100),
+          reference: `CART-${Date.now()}`,
           publicKey: import.meta.env.VITE_WOMPI_PUBLIC_KEY,
           redirectUrl: window.location.origin + '/payment-result',
         });
@@ -43,7 +43,7 @@ const CreditCardModal: React.FC<CreditCardModalProps> = ({ onClose }) => {
     return () => {
       document.body.removeChild(script);
     };
-  }, [product]);
+  }, [cartItems, cartTotal]);
 
   const handlePayment = () => {
     if (checkoutRef.current) {
@@ -55,6 +55,7 @@ const CreditCardModal: React.FC<CreditCardModalProps> = ({ onClose }) => {
         };
         
         dispatch(setTransactionInfo(transactionInfo));
+        dispatch(clearCart()); // Limpiar el carrito después de un pago exitoso
         navigate('/payment-result');
       });
     }
@@ -77,6 +78,20 @@ const CreditCardModal: React.FC<CreditCardModalProps> = ({ onClose }) => {
         </div>
 
         <div className="space-y-4">
+          <div className="border-t border-b py-4">
+            <h4 className="font-medium mb-2">Resumen del Carrito</h4>
+            {cartItems.map((item) => (
+              <div key={item.product.id} className="flex justify-between text-sm">
+                <span>{item.product.name} x {item.quantity}</span>
+                <span>${(item.product.price * item.quantity).toFixed(2)}</span>
+              </div>
+            ))}
+            <div className="flex justify-between font-bold mt-2 pt-2 border-t">
+              <span>Total:</span>
+              <span>${cartTotal.toFixed(2)}</span>
+            </div>
+          </div>
+
           <p className="text-sm text-gray-500">
             Serás redirigido al procesador de pagos seguro de Wompi para completar tu compra.
           </p>
@@ -91,6 +106,7 @@ const CreditCardModal: React.FC<CreditCardModalProps> = ({ onClose }) => {
             <button
               onClick={handlePayment}
               className="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700"
+              disabled={cartItems.length === 0}
             >
               Proceder al Pago
             </button>

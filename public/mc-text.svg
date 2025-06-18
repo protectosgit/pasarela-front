@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40" viewBox="0 0 120 40">
+  <style>
+    @font-face {
+      font-family: 'MasterCardFont';
+      font-style: italic;
+      font-weight: 500;
+    }
+  </style>
+  <text x="5" y="25" font-family="Arial, sans-serif" font-style="italic" font-weight="500" font-size="18" letter-spacing="0.5" fill="#FFFFFF">MASTERCARD</text>
+</svg> 
