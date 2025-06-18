@@ -1,5 +1,6 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { PaymentState, Product, CustomerInfo, DeliveryInfo, TransactionInfo } from '../types';
+import { createSlice } from '@reduxjs/toolkit';
+import type { PayloadAction } from '@reduxjs/toolkit';
+import type { PaymentState, Product, CustomerInfo, DeliveryInfo, TransactionInfo } from '../types';
 
 const initialState: PaymentState = {
   product: null,

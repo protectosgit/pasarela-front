@@ -1,0 +1,87 @@
+/* Normalización y reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Mejoras de accesibilidad */
+:focus {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
+}
+
+/* Soporte para navegadores antiguos */
+@supports not (display: grid) {
+  .grid {
+    display: flex;
+    flex-wrap: wrap;
+  }
+}
+
+/* Mejoras para dispositivos táctiles */
+@media (hover: none) {
+  button:active,
+  a:active {
+    background-color: #4f46e5;
+    color: white;
+  }
+}
+
+/* Mejoras para modo oscuro del sistema */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #1a1a1a;
+    color: #ffffff;
+  }
+}
+
+/* Mejoras para reducción de movimiento */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Soporte para navegadores antiguos - Flexbox */
+.flex {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+}
+
+/* Soporte para navegadores antiguos - Grid */
+.grid {
+  display: -ms-grid;
+  display: grid;
+}
+
+/* Mejoras de rendimiento */
+.transform {
+  -webkit-transform: translateZ(0);
+  -moz-transform: translateZ(0);
+  -ms-transform: translateZ(0);
+  -o-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Mejoras de accesibilidad para teclado */
+.focus-visible:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
+}
+
+/* Soporte para navegadores sin hover */
+@media (hover: hover) {
+  .hover\:bg-blue-700:hover {
+    background-color: #1d4ed8;
+  }
+} 
