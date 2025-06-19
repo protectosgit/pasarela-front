@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosInstance } from 'axios';
+import { AxiosError, AxiosInstance } from 'axios';
 
 export class ResilienceMiddleware {
   private retryCount: number;

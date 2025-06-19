@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '../hooks/useRedux';
-import { 
-  setCustomerInfo, 
-  setCreditCardInfo, 
-  setDeliveryInfo, 
-  nextStep, 
-  previousStep 
-} from '../redux/paymentSlice';
+import React, { useEffect, useState } from 'react';
 import CreditCardBrandDetector from '../components/CreditCardBrandDetector';
+import { useAppDispatch, useAppSelector } from '../hooks/useRedux';
+import {
+  nextStep,
+  previousStep,
+  setCreditCardInfo,
+  setCustomerInfo,
+  setDeliveryInfo
+} from '../redux/paymentSlice';
 
 const PaymentInfoPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { customer, creditCard, delivery, cartItems, cartTotal, fees } = useAppSelector((state) => state.payment);
+  const { customer, creditCard, delivery, cartItems, fees } = useAppSelector((state) => state.payment);
   
   const [formData, setFormData] = useState({
     // Customer info

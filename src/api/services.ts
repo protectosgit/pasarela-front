@@ -12,7 +12,7 @@ export const productService = {
   // Obtener todos los productos
   getAllProducts: async (): Promise<Product[]> => {
     try {
-      const response = await api.get<ApiResponse<Product[]>>('/products');
+      const response = await api.get<ApiResponse<Product[]>>('/api/products');
       if (!response.data.success) {
         throw new Error(response.data.message || 'Error al obtener los productos');
       }
@@ -25,7 +25,7 @@ export const productService = {
   // Obtener un producto específico por ID
   getProduct: async (id: string): Promise<Product> => {
     try {
-      const response = await api.get<ApiResponse<Product>>(`/products/${id}`);
+      const response = await api.get<ApiResponse<Product>>(`/api/products/${id}`);
       if (!response.data.success) {
         throw new Error(response.data.message || 'Error al obtener el producto');
       }
@@ -60,10 +60,9 @@ export const productService = {
   },
 };
 
-// DESHABILITADO - Este servicio usa la API de transacciones que requiere firma en JSON
-// Usar WompiService en su lugar que usa formulario directo
+
 export const paymentService = {
-  processPayment: async (data: {
+  processPayment: async (_data: {
     productId: string;
     cardToken: string;
     customerInfo: CustomerInfo;
@@ -71,17 +70,5 @@ export const paymentService = {
   }) => {
     // DESHABILITADO: Este método usa la API de transacciones problemática
     throw new Error('❌ PaymentService deshabilitado. Usar WompiService.processPayment() en su lugar');
-    
-    /*
-    try {
-      const response = await api.post<ApiResponse<any>>('/api/payments/process', data);
-      if (!response.data.success) {
-        throw new Error(response.data.message || 'Error al procesar el pago');
-      }
-      return response.data.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Error al procesar pago');
-    }
-    */
   },
 }; 

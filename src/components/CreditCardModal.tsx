@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useAppDispatch, useAppSelector } from '../hooks/useRedux';
-import { 
-  setCustomerInfo, 
-  setCreditCardInfo, 
-  setDeliveryInfo, 
-  setCurrentStep 
+import { useAppDispatch } from '../hooks/useRedux';
+import {
+  setCreditCardInfo,
+  setCurrentStep,
+  setCustomerInfo,
+  setDeliveryInfo
 } from '../redux/paymentSlice';
 import CreditCardBrandDetector from './CreditCardBrandDetector';
 

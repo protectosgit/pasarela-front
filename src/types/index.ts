@@ -43,8 +43,8 @@ export interface DeliveryInfo {
 // Fees types - REQUERIDO POR LA PRUEBA
 export interface FeesInfo {
   productAmount: number;
-  baseFee: number;      // Fee base que siempre se agrega
-  deliveryFee: number;  // Fee de delivery
+  baseFee: number;
+  deliveryFee: number;
   totalAmount: number;
 }
 

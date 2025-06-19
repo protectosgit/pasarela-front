@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../hooks/useRedux';
-import { 
-  removeFromCart, 
-  updateCartItemQuantity, 
+import {
   clearCart,
-  nextStep 
+  removeFromCart,
+  updateCartItemQuantity
 } from '../redux/paymentSlice';
 import CreditCardModal from './CreditCardModal';
 

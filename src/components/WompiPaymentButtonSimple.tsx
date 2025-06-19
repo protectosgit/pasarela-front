@@ -13,12 +13,10 @@ const WompiPaymentButtonSimple: React.FC<WompiPaymentButtonSimpleProps> = ({
   const { cartTotal } = useAppSelector((state) => state.payment);
 
   const publicKey = 'pub_stagtest_g2u0HQd3ZMh05hsSgTS2lUV8t3s4mOt7';
-  const integrityKey = 'stagtest_integrity_nAIBuqayW70XpUqJS4qf4STYiISd89Fp';
   const currency = 'COP';
   const amountInCents = Math.round(cartTotal * 100);
   const reference = `ORDER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   
-  // URL de redirección después del pago - usando el origin actual
   const redirectUrl = `${window.location.origin}/payment-result`;
 
   return (

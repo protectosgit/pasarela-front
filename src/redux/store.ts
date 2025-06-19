@@ -1,6 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 import paymentReducer from './paymentSlice';
 import { loadStateFromStorage, saveStateToStorage } from '../utils/storage';
+import type { PaymentState } from '../types';
 
 const preloadedState = loadStateFromStorage();
 
@@ -8,7 +9,9 @@ export const store = configureStore({
   reducer: {
     payment: paymentReducer,
   },
-  preloadedState: preloadedState ? { payment: preloadedState } : undefined,
+  preloadedState: preloadedState ? { 
+    payment: preloadedState as PaymentState 
+  } : undefined,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: false,

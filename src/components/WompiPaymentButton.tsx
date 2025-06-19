@@ -14,69 +14,25 @@ const WompiPaymentButton: React.FC<WompiPaymentButtonProps> = ({
 }) => {
   const { cartTotal } = useAppSelector((state) => state.payment);
   const formRef = useRef<HTMLFormElement>(null);
-  const scriptRef = useRef<HTMLScriptElement | null>(null);
 
-  const publicKey = import.meta.env.VITE_WOMPI_PUBLIC_KEY || 'pub_stagtest_g2u0HQd3ZMh05hsSgTS2lUV8t3s4mOt7';
-  const currency = 'COP';
-  const amountInCents = Math.round(cartTotal * 100);
   const reference = `ORDER-${Date.now()}`;
-  
-  const generateSignature = () => {
-    const data = `${reference}${amountInCents}${currency}${publicKey}`;
-    return btoa(data).slice(0, 32);
-  };
 
-  const loadWompiWidget = () => {
-    if (isLoading) return;
-    
-    setIsLoading(true);
-    setError(null);
-
-    if (containerRef.current) {
-      containerRef.current.innerHTML = '';
-    }
-
-    const existingScripts = document.querySelectorAll('script[src*="checkout.wompi.co"]');
-    existingScripts.forEach(script => script.remove());
-
-    const script = document.createElement('script');
-    script.src = 'https://checkout.wompi.co/widget.js';
-    script.setAttribute('data-render', 'button');
-    script.setAttribute('data-public-key', publicKey);
-    script.setAttribute('data-currency', 'COP');
-    script.setAttribute('data-amount-in-cents', amountInCents.toString());
-    script.setAttribute('data-reference', reference);
-    script.async = true;
-
-    script.onload = () => {
-      setIsLoading(false);
-    };
-
-    script.onerror = () => {
-      setError('Error al cargar el sistema de pagos');
-      setIsLoading(false);
-    };
-
-    if (containerRef.current) {
-      containerRef.current.appendChild(script);
-    }
-  };
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.origin !== 'https://checkout.wompi.co') return;
-
-      if (event.data.type === 'transaction.approved') {
-        onPaymentComplete?.(event.data.transaction.id);
+          
+          if (event.data.type === 'transaction.approved') {
+            onPaymentComplete?.(event.data.transaction.id);
       } else if (event.data.type === 'transaction.error' || event.data.type === 'transaction.declined') {
         onPaymentError?.(event.data.error || 'Transacción rechazada');
-      } else if (event.data.type === 'widget.error') {
+          } else if (event.data.type === 'widget.error') {
         onPaymentError?.('Error en el sistema de pagos');
-      }
-    };
+        }
+      };
 
     window.addEventListener('message', handleMessage);
-    return () => {
+      return () => {
       window.removeEventListener('message', handleMessage);
       const scripts = document.querySelectorAll('script[src*="checkout.wompi.co"]');
       scripts.forEach(script => script.remove());

@@ -1,16 +1,16 @@
-import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
-import { circuitBreaker, retryWithBackoff } from './resilience';
+import axios, { AxiosError, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+  baseURL: import.meta.env.VITE_API_URL || 'https://a9e7-2800-e6-4001-6ea9-accd-1a66-7960-e1be.ngrok-free.app/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true',
   },
 });
 
 axiosInstance.interceptors.request.use(
-  (config: AxiosRequestConfig) => {
+  (config: InternalAxiosRequestConfig) => {
     return config;
   },
   (error: AxiosError) => {
@@ -32,7 +32,7 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true;
       await new Promise(resolve => setTimeout(resolve, 1000));
       return axiosInstance(originalRequest);
-    }
+  }
 
     return Promise.reject(error);
   }

@@ -11,7 +11,7 @@ export interface WompiFormData {
 export class WompiService {
   static readonly WOMPI_CHECKOUT_URL = 'https://checkout.co.uat.wompi.dev/p/';
   static readonly WOMPI_PUBLIC_KEY = 'pub_stagtest_g2u0HQd3ZMh05hsSgTS2lUV8t3s4mOt7';
-  static readonly BACKEND_URL = 'http://localhost:3000';
+  static readonly BACKEND_URL = 'https://a9e7-2800-e6-4001-6ea9-accd-1a66-7960-e1be.ngrok-free.app';
 
   /**
    * Inicialización del servicio con logs
@@ -145,6 +145,7 @@ export class WompiService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
         body: JSON.stringify(integrityPayload)
       });
@@ -160,7 +161,11 @@ export class WompiService {
       const integrityData = await integrityResponse.json();
       console.log('🔐 Firma de integridad obtenida:', integrityData);
 
-      // 4. CREAR FORMULARIO SIMPLE Y DIRECTO
+      // 4. NO CREAR TRANSACCIÓN PREVIA - DEJAR QUE WOMPI GENERE LA REFERENCIA
+      console.log('⚠️ NOTA: No creamos transacción previa. Wompi generará su propia referencia.');
+      console.log('🔄 La transacción se creará via webhook cuando Wompi confirme el pago.');
+
+      // 5. CREAR FORMULARIO SIMPLE Y DIRECTO
       const form = document.createElement('form');
       form.method = 'GET';
       form.action = this.WOMPI_CHECKOUT_URL;
@@ -237,15 +242,90 @@ export class WompiService {
    */
   static async getTransactionStatus(transactionId: string): Promise<any> {
     try {
-      const response = await fetch(`${this.BACKEND_URL}/api/payments/${transactionId}`);
+      console.log('🔍 Consultando estado de transacción:', transactionId);
+      
+      const response = await fetch(`${this.BACKEND_URL}/api/payments/${transactionId}`, {
+        headers: {
+          'ngrok-skip-browser-warning': 'true',
+        }
+      });
+      
+      // Si la transacción no existe, intentar crearla
+      if (response.status === 404) {
+        console.log('⚠️ Transacción no encontrada, intentando crear...');
+        
+        // Obtener datos de la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const amount = urlParams.get('amount_in_cents') 
+          ? (parseInt(urlParams.get('amount_in_cents')!) / 100).toString()
+          : '0';
+        
+        const customerEmail = urlParams.get('customer-email') || 'no-email@example.com';
+        
+        console.log('📝 Datos para crear transacción:', {
+          reference: transactionId,
+          amount,
+          customerEmail
+        });
+        
+        const createResponse = await fetch(`${this.BACKEND_URL}/api/payments/create-transaction`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true',
+          },
+          body: JSON.stringify({
+            reference: transactionId,
+            amount,
+            customer: {
+              email: customerEmail,
+              firstName: 'Cliente',
+              lastName: 'Wompi',
+              phone: '0000000000'
+            },
+            paymentMethod: urlParams.get('payment_method_type') || 'CARD'
+          })
+        });
+
+        if (!createResponse.ok) {
+          const errorData = await createResponse.text();
+          console.error('❌ Error creando transacción:', errorData);
+          
+          // Si la transacción ya existe, intentar obtener su estado nuevamente
+          if (createResponse.status === 400) {
+            console.log('🔄 La transacción podría existir, reintentando obtener estado...');
+            // Esperar un momento antes de reintentar
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            return await this.getTransactionStatus(transactionId);
+          }
+          
+          throw new Error(`Error creando transacción: ${errorData}`);
+        }
+
+        const createdData = await createResponse.json();
+        console.log('✅ Transacción creada:', createdData);
+
+        if (createdData.success) {
+          return createdData;
+        } else {
+          throw new Error(createdData.error || 'Error desconocido creando transacción');
+        }
+      }
       
       if (!response.ok) {
         throw new Error(`Error al obtener estado: ${response.status}`);
       }
 
-      return await response.json();
+      const data = await response.json();
+      console.log('📥 Datos de la transacción:', data);
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Error desconocido obteniendo estado');
+      }
+      
+      return data;
     } catch (error) {
-      console.error('Error obteniendo estado de transacción:', error);
+      console.error('❌ Error obteniendo estado de transacción:', error);
       throw error;
     }
   }

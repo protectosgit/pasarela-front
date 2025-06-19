@@ -1,5 +1,12 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useAppSelector } from '../hooks/useRedux';
+
+// Declaración de tipos para Wompi
+declare global {
+  interface Window {
+    WidgetCheckout?: any;
+  }
+}
 
 interface WompiPaymentButtonRobustProps {
   onPaymentComplete?: (transactionId: string) => void;
@@ -15,10 +22,8 @@ const WompiPaymentButtonRobust: React.FC<WompiPaymentButtonRobustProps> = ({
   const { cartTotal } = useAppSelector((state) => state.payment);
   const containerRef = useRef<HTMLDivElement>(null);
   const isLoadingRef = useRef(false);
-  const cleanupRef = useRef<(() => void) | null>(null);
 
   const publicKey = 'pub_stagtest_g2u0HQd3ZMh05hsSgTS2lUV8t3s4mOt7';
-  const currency = 'COP';
   const amountInCents = Math.round(cartTotal * 100);
   const reference = `ORDER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -61,8 +66,8 @@ const WompiPaymentButtonRobust: React.FC<WompiPaymentButtonRobustProps> = ({
             script.remove();
           } catch (error) {
             // Silent fail
-          }
-        });
+        }
+      });
       } catch (error) {
         // Silent fail
       }
@@ -107,16 +112,16 @@ const WompiPaymentButtonRobust: React.FC<WompiPaymentButtonRobustProps> = ({
       containerRef.current.innerHTML = `
         <div id="wompi-widget-container">
           <div class="wompi-widget" 
-               data-render="button" 
-               data-public-key="${publicKey}"
+            data-render="button"
+            data-public-key="${publicKey}"
                data-currency="COP" 
-               data-amount-in-cents="${amountInCents}"
+            data-amount-in-cents="${amountInCents}"
                data-reference="${reference}">
           </div>
         </div>
       `;
 
-      isLoadingRef.current = false;
+        isLoadingRef.current = false;
     } catch (error) {
       isLoadingRef.current = false;
       onPaymentError?.(error);

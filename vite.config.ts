@@ -7,14 +7,15 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
-    proxy: {
-      '/api': {
-        target: 'https://sandbox.wompi.co/v1',
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/api/, '')
-      }
-    }
+    // PROXY DESHABILITADO: Interfiere con las llamadas al backend
+    // proxy: {
+    //   '/api': {
+    //     target: 'https://sandbox.wompi.co/v1',
+    //     changeOrigin: true,
+    //     secure: false,
+    //     rewrite: (path) => path.replace(/^\/api/, '')
+    //   }
+    // }
   },
   define: {
     'process.env': {}

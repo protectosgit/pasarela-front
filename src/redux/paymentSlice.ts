@@ -11,12 +11,14 @@ import type {
 } from '../types';
 
 const calculateFees = (cartTotal: number): FeesInfo => {
-  const base = 2500;
-  const delivery = cartTotal >= 50000 ? 0 : 5000;
+  const baseFee = 2500;
+  const deliveryFee = cartTotal >= 50000 ? 0 : 5000;
   
   return {
-    base,
-    delivery,
+    productAmount: cartTotal,
+    baseFee,
+    deliveryFee,
+    totalAmount: cartTotal + baseFee + deliveryFee,
   };
 };
 
@@ -80,19 +82,19 @@ export const paymentSlice = createSlice({
   initialState,
   reducers: {
     // Step navigation
-    setCurrentStep: (state, action: PayloadAction<1 | 2>) => {
+    setCurrentStep: (state, action: PayloadAction<1 | 2 | 3 | 4 | 5>) => {
       state.currentStep = action.payload;
     },
     
     nextStep: (state) => {
-      if (state.currentStep < 2) {
-        state.currentStep = (state.currentStep + 1) as 1 | 2;
+      if (state.currentStep < 5) {
+        state.currentStep = (state.currentStep + 1) as 1 | 2 | 3 | 4 | 5;
       }
     },
     
     previousStep: (state) => {
       if (state.currentStep > 1) {
-        state.currentStep = (state.currentStep - 1) as 1 | 2;
+        state.currentStep = (state.currentStep - 1) as 1 | 2 | 3 | 4 | 5;
       }
     },
     
@@ -189,7 +191,7 @@ export const paymentSlice = createSlice({
     },
 
     // Reset completo del sistema
-    resetEverything: (state) => {
+    resetEverything: () => {
       return { ...initialState };
     },
   },
