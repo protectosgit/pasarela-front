@@ -1,7 +1,7 @@
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://a9e7-2800-e6-4001-6ea9-accd-1a66-7960-e1be.ngrok-free.app/api',
+  baseURL: import.meta.env.VITE_API_URL || 'https://back-pasarela.onrender.com',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

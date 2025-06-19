@@ -34,7 +34,7 @@ VITE_WOMPI_PUBLIC_KEY=pub_stagtest_g2u0HQd3ZMh05hsSgTS2lUV8t3s4mOt7
 VITE_WOMPI_ENVIRONMENT=stagtest
 
 # Configuración del Backend
-VITE_API_URL=https://a9e7-2800-e6-4001-6ea9-accd-1a66-7960-e1be.ngrok-free.app/api
+VITE_API_URL=https://back-pasarela.onrender.com
 VITE_APP_URL=http://localhost:5173
 
 # Configuración de desarrollo
