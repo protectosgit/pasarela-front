@@ -123,7 +123,7 @@ const PaymentResultPage: React.FC = () => {
             if (wompiResponse.ok) {
               const wompiData = await wompiResponse.json();
               if (wompiData.success && wompiData.data) {
-                setPaymentData(prevData => ({
+                setPaymentData({
                   id: Date.now(),
                   reference: referenceToUse,
                   amount: wompiData.data.amount_in_cents / 100,
@@ -138,7 +138,7 @@ const PaymentResultPage: React.FC = () => {
                   deliveryInfo: (store.getState() as RootState).payment.delivery,
                   customer: getCustomerFromRedux(),
                   product: getProductFromRedux()
-                }));
+                });
                 setPaymentStatus(mapWompiStatusToInternal(wompiData.data.status));
                 return mapWompiStatusToInternal(wompiData.data.status);
               }
@@ -184,7 +184,7 @@ const PaymentResultPage: React.FC = () => {
             
             if (createdData.success) {
               const state = store.getState() as RootState;
-              setPaymentData(prevData => ({
+              setPaymentData({
                 id: createdData.data.id,
                 reference: createdData.data.reference || referenceToUse,
                 amount: totalAmount,
@@ -213,7 +213,7 @@ const PaymentResultPage: React.FC = () => {
                   stock: state.payment.cartItems[0].product.stock
                 } : undefined,
                 wompiTransactionId: createdData.data.wompiTransactionId
-              }));
+              });
               setPaymentStatus(createdData.data.status);
               return createdData.data.status;
             }
