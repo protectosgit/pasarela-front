@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import CreditCardBrandDetector from '../components/CreditCardBrandDetector';
 import { useAppDispatch, useAppSelector } from '../hooks/useRedux';
 import {
@@ -38,6 +38,8 @@ const PaymentInfoPage: React.FC = () => {
   const [cardType, setCardType] = useState<'visa' | 'mastercard' | null>(creditCard?.cardType || null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+
+  const formRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
   // Detectar tipo de tarjeta
   useEffect(() => {
@@ -85,6 +87,15 @@ const PaymentInfoPage: React.FC = () => {
     }));
   };
 
+  const handlePhoneChange = (value: string, field: 'phone' | 'recipientPhone') => {
+    const cleaned = value.replace(/\D/g, '');
+    const limited = cleaned.slice(0, 10);
+    setFormData(prev => ({
+      ...prev,
+      [field]: limited,
+    }));
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -111,6 +122,16 @@ const PaymentInfoPage: React.FC = () => {
     if (!formData.recipientPhone.trim()) newErrors.recipientPhone = 'Teléfono del destinatario requerido';
 
     setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      const firstErrorField = Object.keys(newErrors)[0];
+      const inputRef = formRefs.current[firstErrorField];
+      if (inputRef) {
+        inputRef.focus();
+        inputRef.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
     return Object.keys(newErrors).length === 0;
   };
 
@@ -231,6 +252,7 @@ const PaymentInfoPage: React.FC = () => {
                       Nombre *
                     </label>
                     <input
+                      ref={(el) => formRefs.current.firstName = el}
                       type="text"
                       value={formData.firstName}
                       onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
@@ -252,6 +274,7 @@ const PaymentInfoPage: React.FC = () => {
                       Apellido *
                     </label>
                     <input
+                      ref={(el) => formRefs.current.lastName = el}
                       type="text"
                       value={formData.lastName}
                       onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
@@ -273,6 +296,7 @@ const PaymentInfoPage: React.FC = () => {
                       Email *
                     </label>
                     <input
+                      ref={(el) => formRefs.current.email = el}
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
@@ -294,11 +318,13 @@ const PaymentInfoPage: React.FC = () => {
                       Teléfono *
                     </label>
                     <input
+                      ref={(el) => formRefs.current.phone = el}
                       type="tel"
                       value={formData.phone}
-                      onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                      onChange={(e) => handlePhoneChange(e.target.value, 'phone')}
                       className={`input-field ${errors.phone ? 'input-error' : ''}`}
-                      placeholder="+57 300 123 4567"
+                      placeholder="3001234567"
+                      maxLength={10}
                     />
                     {errors.phone && (
                       <p className="text-error-600 text-sm mt-2 flex items-center gap-2">
@@ -332,6 +358,7 @@ const PaymentInfoPage: React.FC = () => {
                     </label>
                     <div className="relative">
                       <input
+                        ref={(el) => formRefs.current.cardNumber = el}
                         type="text"
                         value={formData.cardNumber}
                         onChange={(e) => handleCardNumberChange(e.target.value)}
@@ -356,6 +383,7 @@ const PaymentInfoPage: React.FC = () => {
                       Nombre del Titular *
                     </label>
                     <input
+                      ref={(el) => formRefs.current.cardHolder = el}
                       type="text"
                       value={formData.cardHolder}
                       onChange={(e) => setFormData(prev => ({ ...prev, cardHolder: e.target.value.toUpperCase() }))}
@@ -378,6 +406,7 @@ const PaymentInfoPage: React.FC = () => {
                         Vencimiento *
                       </label>
                       <input
+                        ref={(el) => formRefs.current.expiryDate = el}
                         type="text"
                         value={formData.expiryDate}
                         onChange={(e) => handleExpiryDateChange(e.target.value)}
@@ -400,14 +429,15 @@ const PaymentInfoPage: React.FC = () => {
                         CVV *
                       </label>
                       <input
+                        ref={(el) => formRefs.current.cvv = el}
                         type="text"
                         value={formData.cvv}
                         onChange={(e) => setFormData(prev => ({ 
                           ...prev, 
-                          cvv: e.target.value.replace(/\D/g, '').slice(0, 4) 
+                          cvv: e.target.value.replace(/\D/g, '').slice(0, 3) 
                         }))}
                         placeholder="123"
-                        maxLength={4}
+                        maxLength={3}
                         className={`input-field ${errors.cvv ? 'input-error' : ''}`}
                       />
                       {errors.cvv && (
@@ -443,6 +473,7 @@ const PaymentInfoPage: React.FC = () => {
                       Dirección *
                     </label>
                     <input
+                      ref={(el) => formRefs.current.address = el}
                       type="text"
                       value={formData.address}
                       onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
@@ -464,10 +495,11 @@ const PaymentInfoPage: React.FC = () => {
                       Ciudad *
                     </label>
                     <input
+                      ref={(el) => formRefs.current.city = el}
                       type="text"
                       value={formData.city}
                       onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
-                      placeholder="Bogotá"
+                      placeholder="Medellin"
                       className={`input-field ${errors.city ? 'input-error' : ''}`}
                     />
                     {errors.city && (
@@ -485,10 +517,11 @@ const PaymentInfoPage: React.FC = () => {
                       Departamento *
                     </label>
                     <input
+                      ref={(el) => formRefs.current.department = el}
                       type="text"
                       value={formData.department}
                       onChange={(e) => setFormData(prev => ({ ...prev, department: e.target.value }))}
-                      placeholder="Cundinamarca"
+                      placeholder="Antioquia"
                       className={`input-field ${errors.department ? 'input-error' : ''}`}
                     />
                     {errors.department && (
@@ -506,10 +539,11 @@ const PaymentInfoPage: React.FC = () => {
                       Código Postal *
                     </label>
                     <input
+                      ref={(el) => formRefs.current.postalCode = el}
                       type="text"
                       value={formData.postalCode}
                       onChange={(e) => setFormData(prev => ({ ...prev, postalCode: e.target.value }))}
-                      placeholder="110111"
+                      placeholder="05001"
                       className={`input-field ${errors.postalCode ? 'input-error' : ''}`}
                     />
                     {errors.postalCode && (
@@ -527,6 +561,7 @@ const PaymentInfoPage: React.FC = () => {
                       Nombre del Destinatario *
                     </label>
                     <input
+                      ref={(el) => formRefs.current.recipientName = el}
                       type="text"
                       value={formData.recipientName}
                       onChange={(e) => setFormData(prev => ({ ...prev, recipientName: e.target.value }))}
@@ -548,11 +583,13 @@ const PaymentInfoPage: React.FC = () => {
                       Teléfono del Destinatario *
                     </label>
                     <input
+                      ref={(el) => formRefs.current.recipientPhone = el}
                       type="tel"
                       value={formData.recipientPhone}
-                      onChange={(e) => setFormData(prev => ({ ...prev, recipientPhone: e.target.value }))}
-                      placeholder="+57 300 123 4567"
+                      onChange={(e) => handlePhoneChange(e.target.value, 'recipientPhone')}
                       className={`input-field ${errors.recipientPhone ? 'input-error' : ''}`}
+                      placeholder="3001234567"
+                      maxLength={10}
                     />
                     {errors.recipientPhone && (
                       <p className="text-error-600 text-sm mt-2 flex items-center gap-2">

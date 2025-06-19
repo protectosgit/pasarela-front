@@ -70,6 +70,6 @@ export const paymentService = {
     deliveryInfo: DeliveryInfo;
   }) => {
     // DESHABILITADO: Este método usa la API de transacciones problemática
-    throw new Error('❌ PaymentService deshabilitado. Usar WompiService.processPayment() en su lugar');
+    throw new Error('PaymentService deshabilitado. Usar WompiService.processPayment() en su lugar');
   },
 }; 

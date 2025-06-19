@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppDispatch } from '../hooks/useRedux';
 import {
   setCreditCardInfo,
@@ -41,6 +41,28 @@ const CreditCardModal: React.FC<CreditCardModalProps> = ({ isOpen, onClose }) =>
   const [currentTab, setCurrentTab] = useState<'personal' | 'card' | 'delivery'>('personal');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [cardType, setCardType] = useState<'visa' | 'mastercard' | null>(null);
+
+  useEffect(() => {
+    if (!formData.cardNumber) {
+      setCardType(null);
+      return;
+    }
+    
+    const number = formData.cardNumber.replace(/\s/g, '');
+    if (number.startsWith('4')) {
+      setCardType('visa');
+    } else if (
+      (number.startsWith('5') && ['1', '2', '3', '4', '5'].includes(number[1])) ||
+      (number.startsWith('2') && 
+        parseInt(number.substring(0, 4)) >= 2221 && 
+        parseInt(number.substring(0, 4)) <= 2720)
+    ) {
+      setCardType('mastercard');
+    } else {
+      setCardType(null);
+    }
+  }, [formData.cardNumber]);
 
   const formatCardNumber = (value: string) => {
     const cleaned = value.replace(/\D/g, '');
@@ -69,6 +91,15 @@ const CreditCardModal: React.FC<CreditCardModalProps> = ({ isOpen, onClose }) =>
     }));
   };
 
+  const handlePhoneChange = (value: string, field: 'phone' | 'recipientPhone') => {
+    const cleaned = value.replace(/\D/g, '');
+    const limited = cleaned.slice(0, 10);
+    setFormData(prev => ({
+      ...prev,
+      [field]: limited,
+    }));
+  };
+
   const validateCurrentTab = () => {
     const newErrors: Record<string, string> = {};
 
@@ -83,7 +114,7 @@ const CreditCardModal: React.FC<CreditCardModalProps> = ({ isOpen, onClose }) =>
       }
       if (!formData.cardHolder.trim()) newErrors.cardHolder = 'Nombre del titular requerido';
       if (formData.expiryDate.length !== 5) newErrors.expiryDate = 'Fecha inválida (MM/YY)';
-      if (formData.cvv.length < 3) newErrors.cvv = 'CVV inválido';
+      if (formData.cvv.length !== 3) newErrors.cvv = 'CVV debe tener 3 dígitos';
     } else if (currentTab === 'delivery') {
       if (!formData.address.trim()) newErrors.address = 'Dirección requerida';
       if (!formData.city.trim()) newErrors.city = 'Ciudad requerida';
@@ -116,21 +147,6 @@ const CreditCardModal: React.FC<CreditCardModalProps> = ({ isOpen, onClose }) =>
 
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Detect card type
-      const number = formData.cardNumber.replace(/\s/g, '');
-      let cardType: 'visa' | 'mastercard' | null = null;
-      
-      if (number.startsWith('4')) {
-        cardType = 'visa';
-      } else if (
-        (number.startsWith('5') && ['1', '2', '3', '4', '5'].includes(number[1])) ||
-        (number.startsWith('2') && 
-          parseInt(number.substring(0, 4)) >= 2221 && 
-          parseInt(number.substring(0, 4)) <= 2720)
-      ) {
-        cardType = 'mastercard';
-      }
 
       dispatch(setCustomerInfo({
         firstName: formData.firstName,
@@ -298,9 +314,10 @@ const CreditCardModal: React.FC<CreditCardModalProps> = ({ isOpen, onClose }) =>
                   <input
                     type="tel"
                     value={formData.phone}
-                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                    onChange={(e) => handlePhoneChange(e.target.value, 'phone')}
                     className={`input-field ${errors.phone ? 'input-error' : ''}`}
-                    placeholder="+57 300 123 4567"
+                    placeholder="3001234567"
+                    maxLength={10}
                   />
                   {errors.phone && <p className="text-error-600 text-sm mt-1">{errors.phone}</p>}
                 </div>
@@ -366,10 +383,10 @@ const CreditCardModal: React.FC<CreditCardModalProps> = ({ isOpen, onClose }) =>
                     <input
                       type="text"
                       value={formData.cvv}
-                      onChange={(e) => setFormData(prev => ({ ...prev, cvv: e.target.value.replace(/\D/g, '').slice(0, 4) }))}
+                      onChange={(e) => setFormData(prev => ({ ...prev, cvv: e.target.value.replace(/\D/g, '').slice(0, 3) }))}
                       className={`input-field ${errors.cvv ? 'input-error' : ''}`}
                       placeholder="123"
-                      maxLength={4}
+                      maxLength={3}
                     />
                     {errors.cvv && <p className="text-error-600 text-sm mt-1">{errors.cvv}</p>}
                   </div>
@@ -461,9 +478,10 @@ const CreditCardModal: React.FC<CreditCardModalProps> = ({ isOpen, onClose }) =>
                     <input
                       type="tel"
                       value={formData.recipientPhone}
-                      onChange={(e) => setFormData(prev => ({ ...prev, recipientPhone: e.target.value }))}
+                      onChange={(e) => handlePhoneChange(e.target.value, 'recipientPhone')}
                       className={`input-field ${errors.recipientPhone ? 'input-error' : ''}`}
-                      placeholder="+57 300 123 4567"
+                      placeholder="3001234567"
+                      maxLength={10}
                     />
                     {errors.recipientPhone && <p className="text-error-600 text-sm mt-1">{errors.recipientPhone}</p>}
                   </div>

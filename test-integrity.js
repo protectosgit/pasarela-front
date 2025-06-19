@@ -15,7 +15,7 @@ async function testIntegritySignature() {
 
         // Probar endpoint del backend
         console.log('\n📡 Llamando al backend...');
-        const response = await fetch('https://a9e7-2800-e6-4001-6ea9-accd-1a66-7960-e1be.ngrok-free.app/api/payments/integrity', {
+        const response = await fetch('https://back-pasarela.onrender.com/api/payments/integrity', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -36,7 +36,7 @@ async function testIntegritySignature() {
 
     } catch (error) {
         console.error('❌ Error de conexión:', error.message);
-        console.log('\n💡 Asegúrate de que el backend esté ejecutándose en https://a9e7-2800-e6-4001-6ea9-accd-1a66-7960-e1be.ngrok-free.app');
+        console.log('\n💡 Asegúrate de que el backend esté ejecutándose en https://back-pasarela.onrender.com');
     }
 }
 

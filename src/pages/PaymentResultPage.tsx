@@ -46,50 +46,38 @@ const PaymentResultPage: React.FC = () => {
   
   const queryAttempts = useRef(0);
   const timeoutRef = useRef<number | null>(null);
-  // Consultar indefinidamente hasta recibir respuesta de Wompi
-  const INITIAL_DELAY = 3000; // Esperar 3 segundos antes de la primera consulta
-  const RETRY_INTERVAL = 8000; // 8 segundos entre intentos
+  const INITIAL_DELAY = 3000;
+  const RETRY_INTERVAL = 8000;
   const [waitingMessage, setWaitingMessage] = useState('Esperando confirmación de Wompi...');
 
-  // Obtener parámetros de la URL
   const urlParams = new URLSearchParams(location.search);
   const transactionId = urlParams.get('id');
   const reference = urlParams.get('reference');
 
-  // Función para consultar el estado del pago en nuestro backend
   const fetchPaymentStatus = useCallback(async (): Promise<string> => {
     try {
       const referenceToUse = reference || transactionId;
       if (!referenceToUse) {
-        console.error('No se encontró referencia o ID de transacción');
         setPaymentStatus('ERROR_NO_REFERENCE');
         return 'ERROR_NO_REFERENCE';
       }
 
-      console.log(`[Intento ${queryAttempts.current + 1}] Consultando estado para referencia:`, referenceToUse);
-      
-      const response = await fetch(`https://a9e7-2800-e6-4001-6ea9-accd-1a66-7960-e1be.ngrok-free.app/api/payments/${referenceToUse}`, {
+      const response = await fetch(`https://back-pasarela.onrender.com/api/payments/${referenceToUse}`, {
         headers: {
           'ngrok-skip-browser-warning': 'true',
         }
       });
       
       if (!response.ok) {
-        // Si no encuentra la transacción, intentar crearla con datos del Redux
         if (response.status === 404) {
-          console.log('🔄 Transacción no encontrada, intentando crear con datos del Redux...');
-          
-          // Obtener datos del estado de Redux
           const state = store.getState() as RootState;
           
-          // Extraer el monto de la URL o usar el total del carrito
           const amountFromUrl = urlParams.get('amount_in_cents') 
             ? (parseInt(urlParams.get('amount_in_cents')!) / 100)
             : 0;
           
           const totalAmount = amountFromUrl > 0 ? amountFromUrl : state.payment.cartTotal;
 
-          // Preparar datos completos para crear la transacción
           const transactionData = {
             reference: referenceToUse,
             amount: totalAmount.toString(),
@@ -105,9 +93,7 @@ const PaymentResultPage: React.FC = () => {
             paymentMethod: urlParams.get('payment_method_type') || 'CARD'
           };
           
-          console.log('📦 Datos completos para crear transacción:', transactionData);
-          
-          const createResponse = await fetch(`https://a9e7-2800-e6-4001-6ea9-accd-1a66-7960-e1be.ngrok-free.app/api/payments/create-transaction`, {
+          const createResponse = await fetch(`https://back-pasarela.onrender.com/api/payments/create-transaction`, {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',
@@ -117,9 +103,7 @@ const PaymentResultPage: React.FC = () => {
           });
           
           if (createResponse.ok) {
-            console.log('✅ Transacción creada con datos del Redux');
             const createdData = await createResponse.json();
-            console.log('📋 Datos de transacción creada:', createdData);
             
             if (createdData.success) {
               setPaymentData({
@@ -132,7 +116,7 @@ const PaymentResultPage: React.FC = () => {
                 paymentMethod: createdData.data.paymentMethod || 'Tarjeta de Crédito',
                 paymentToken: createdData.data.paymentToken,
                 customer: state.payment.customer ? {
-                  id: 0, // Temporal hasta que se asigne el real
+                  id: 0,
                   firstName: state.payment.customer.firstName,
                   lastName: state.payment.customer.lastName,
                   email: state.payment.customer.email,
@@ -153,23 +137,19 @@ const PaymentResultPage: React.FC = () => {
               return createdData.data.status;
             }
           } else {
-            const errorData = await createResponse.text();
-            console.warn('❌ No se pudo crear transacción con datos del Redux:', errorData);
+            // const errorData = await createResponse.text();
           }
         }
         
-        console.warn(`[Intento ${queryAttempts.current + 1}] Error en la consulta:`, response.status);
         setPaymentStatus('ERROR_CONSULTA');
         return 'ERROR_CONSULTA';
       }
 
       const result = await response.json();
-      console.log(`[Intento ${queryAttempts.current + 1}] Respuesta del backend:`, result);
 
       if (result.success && result.data) {
         const paymentInfo = result.data;
         
-        // Obtener datos del Redux para completar la información si faltan
         const state = store.getState() as RootState;
         
         setPaymentData({
@@ -182,7 +162,7 @@ const PaymentResultPage: React.FC = () => {
           paymentMethod: paymentInfo.paymentMethod || 'Tarjeta de Crédito',
           paymentToken: paymentInfo.paymentToken,
           customer: paymentInfo.customer || (state.payment.customer ? {
-            id: 0, // Temporal hasta que se asigne el real
+            id: 0,
             firstName: state.payment.customer.firstName,
             lastName: state.payment.customer.lastName,
             email: state.payment.customer.email,
@@ -199,21 +179,20 @@ const PaymentResultPage: React.FC = () => {
           } : undefined),
           wompiTransactionId: paymentInfo.wompiTransactionId
         });
+        
         setPaymentStatus(paymentInfo.status);
         return paymentInfo.status;
       } else {
-        console.warn(`[Intento ${queryAttempts.current + 1}] Consulta no exitosa:`, result);
         setPaymentStatus(result?.status || 'ERROR_CONSULTA');
         return result?.status || 'ERROR_CONSULTA';
       }
+
     } catch (error) {
-      console.error(`[Intento ${queryAttempts.current + 1}] Error en fetchPaymentStatus:`, error);
       setPaymentStatus('ERROR_NETWORK');
       return 'ERROR_NETWORK';
     }
   }, [reference, transactionId, store]);
 
-  // Hook para consultar y reprogramar automáticamente
   useEffect(() => {
     let isMounted = true;
     
@@ -226,12 +205,10 @@ const PaymentResultPage: React.FC = () => {
 
       queryAttempts.current += 1;
       
-      // Actualizar mensaje cada cierto número de intentos
       if (queryAttempts.current % 15 === 0) {
         setWaitingMessage(`Aún esperando confirmación de Wompi... (${Math.floor(queryAttempts.current / 7.5)} minutos)`);
       }
 
-      console.log(`Iniciando intento ${queryAttempts.current}`);
       if (isMounted) setUpdatingStatus(true);
 
       const statusObtained = await fetchPaymentStatus();
@@ -240,7 +217,6 @@ const PaymentResultPage: React.FC = () => {
 
       if (loading) setLoading(false);
 
-      // Continuar consultando solo si está pendiente
       if (statusObtained === 'PENDING') {
         timeoutRef.current = window.setTimeout(consultAndSchedule, RETRY_INTERVAL);
       } else {
@@ -249,7 +225,6 @@ const PaymentResultPage: React.FC = () => {
     };
 
     queryAttempts.current = 0;
-    // Esperar un momento antes de la primera consulta
     timeoutRef.current = window.setTimeout(consultAndSchedule, INITIAL_DELAY);
 
     return () => {
@@ -362,7 +337,6 @@ const PaymentResultPage: React.FC = () => {
     <div className="min-h-screen bg-gray-100 py-8 px-4">
       <div className="max-w-3xl mx-auto">
         <div className="bg-white shadow-xl rounded-lg overflow-hidden">
-          {/* Header con estado */}
           <div className={`p-6 text-center border-b ${statusInfo.bgColor} ${statusInfo.borderColor}`}>
             <div className="flex justify-center items-center mb-4">
               <div className="text-6xl">{statusInfo.icon}</div>
@@ -375,14 +349,12 @@ const PaymentResultPage: React.FC = () => {
             {updatingStatus && paymentStatus === 'PENDING' && (
               <p className="mt-3 text-sm text-yellow-600 font-medium">
                 {waitingMessage}
-            </p>
+              </p>
             )}
           </div>
 
-          {/* Detalles del pago */}
           {paymentData && (
             <div className="p-6">
-              {/* Información de la transacción */}
               <div className="mb-8">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                   📄 Información de la Transacción
@@ -405,11 +377,10 @@ const PaymentResultPage: React.FC = () => {
                   <div>
                     <p className="text-sm text-gray-500">Método de Pago</p>
                     <p className="font-semibold text-gray-900">{paymentData.paymentMethod}</p>
-            </div>
-            </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Información del cliente */}
               {paymentData.customer && (
                 <div className="mb-8">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
@@ -440,7 +411,6 @@ const PaymentResultPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Producto comprado */}
               {paymentData.product && (
                 <div className="mb-8">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
@@ -460,10 +430,9 @@ const PaymentResultPage: React.FC = () => {
                       </div>
                     </div>
                   </div>
-              </div>
-            )}
+                </div>
+              )}
 
-              {/* Total */}
               <div className="border-t pt-6">
                 <div className="flex justify-between items-center text-2xl font-bold">
                   <span className="text-gray-700">TOTAL PAGADO:</span>
@@ -473,7 +442,6 @@ const PaymentResultPage: React.FC = () => {
             </div>
           )}
 
-          {/* Botones de acción */}
           <div className="px-6 py-4 bg-gray-50 border-t flex flex-col sm:flex-row gap-4 justify-end">
             <button
               onClick={handleNewPayment}

@@ -40,12 +40,10 @@ export class ResilienceMiddleware {
   }
 
   private shouldRetry(error: AxiosError): boolean {
-    // Don't retry if we've hit the max retries
     if (this.retryCount >= this.maxRetries) {
       return false;
     }
 
-    // Only retry on network errors or 5xx server errors
     return !error.response || (error.response.status >= 500 && error.response.status <= 599);
   }
 

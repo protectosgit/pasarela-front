@@ -41,7 +41,7 @@ axiosInstance.interceptors.request.use(
     return config;
   },
   (error: AxiosError) => {
-    console.error('❌ Axios Request Error:', error);
+    console.error('Axios Request Error:', error);
     return Promise.reject(error);
   }
 );
@@ -50,7 +50,7 @@ axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => {
     // Debug: Log de respuestas exitosas (solo en desarrollo)
     if (typeof window !== 'undefined' && window.console) {
-      console.log('✅ Axios Response:', {
+      console.log('Axios Response:', {
         status: response.status,
         url: response.config.url
       });
@@ -60,7 +60,7 @@ axiosInstance.interceptors.response.use(
   async (error: AxiosError) => {
     // Debug: Log detallado de errores
     if (typeof window !== 'undefined' && window.console) {
-      console.error('❌ Axios Response Error:', {
+      console.error('Axios Response Error:', {
         message: error.message,
         status: error.response?.status,
         url: error.config?.url,
