@@ -31,6 +31,25 @@ interface PaymentData {
     price: number;
     stock: number;
   };
+  cartItems?: Array<{
+    product: {
+      id: number;
+      name: string;
+      description: string;
+      price: number;
+      stock: number;
+    };
+    quantity: number;
+  }>;
+  totalItems?: number;
+  deliveryInfo?: {
+    address: string;
+    city: string;
+    department: string;
+    postalCode: string;
+    recipientName: string;
+    recipientPhone: string;
+  };
 }
 
 const PaymentResultPage: React.FC = () => {
@@ -53,6 +72,29 @@ const PaymentResultPage: React.FC = () => {
   const urlParams = new URLSearchParams(location.search);
   const transactionId = urlParams.get('id');
   const reference = urlParams.get('reference');
+
+  // Función auxiliar para transformar cartItems del Redux al formato esperado
+  const transformCartItems = (cartItems: any[]): Array<{
+    product: {
+      id: number;
+      name: string;
+      description: string;
+      price: number;
+      stock: number;
+    };
+    quantity: number;
+  }> => {
+    return cartItems?.map(item => ({
+      product: {
+        id: parseInt(item.product.id.toString()),
+        name: item.product.name,
+        description: item.product.description,
+        price: parseFloat(item.product.price.toString()),
+        stock: item.product.stock
+      },
+      quantity: item.quantity
+    })) || [];
+  };
 
   const fetchPaymentStatus = useCallback(async (): Promise<string> => {
     try {
@@ -91,6 +133,9 @@ const PaymentResultPage: React.FC = () => {
                   paymentMethod: 'Tarjeta de Crédito',
                   paymentToken: wompiData.data.id,
                   wompiTransactionId: wompiData.data.id,
+                  cartItems: transformCartItems((store.getState() as RootState).payment.cartItems),
+                  totalItems: (store.getState() as RootState).payment.cartItems?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0,
+                  deliveryInfo: (store.getState() as RootState).payment.delivery,
                   customer: getCustomerFromRedux(),
                   product: getProductFromRedux()
                 });
@@ -138,6 +183,7 @@ const PaymentResultPage: React.FC = () => {
             const createdData = await createResponse.json();
             
             if (createdData.success) {
+              const state = store.getState() as RootState;
               setPaymentData({
                 id: createdData.data.id,
                 reference: createdData.data.reference || referenceToUse,
@@ -147,6 +193,9 @@ const PaymentResultPage: React.FC = () => {
                 updatedAt: createdData.data.updatedAt,
                 paymentMethod: createdData.data.paymentMethod || 'Tarjeta de Crédito',
                 paymentToken: createdData.data.paymentToken,
+                cartItems: transformCartItems(state.payment.cartItems),
+                totalItems: state.payment.cartItems?.reduce((sum, item) => sum + item.quantity, 0) || 0,
+                deliveryInfo: state.payment.delivery,
                 customer: state.payment.customer ? {
                   id: 0,
                   firstName: state.payment.customer.firstName,
@@ -193,6 +242,9 @@ const PaymentResultPage: React.FC = () => {
           updatedAt: paymentInfo.updatedAt,
           paymentMethod: paymentInfo.paymentMethod || 'Tarjeta de Crédito',
           paymentToken: paymentInfo.paymentToken,
+          cartItems: paymentInfo.cartItems || transformCartItems(state.payment.cartItems || []),
+          totalItems: paymentInfo.totalItems || (paymentInfo.cartItems ? paymentInfo.cartItems.reduce((sum: number, item: any) => sum + item.quantity, 0) : 0),
+          deliveryInfo: paymentInfo.deliveryInfo || state.payment.delivery,
           customer: paymentInfo.customer || (state.payment.customer ? {
             id: 0,
             firstName: state.payment.customer.firstName,
@@ -476,7 +528,33 @@ const PaymentResultPage: React.FC = () => {
                 </div>
               )}
 
-              {paymentData.product && (
+              {paymentData.cartItems && paymentData.cartItems.length > 0 ? (
+                <div className="mb-8">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    🛍️ Productos Comprados ({paymentData.totalItems || paymentData.cartItems.length} items)
+                  </h3>
+                  <div className="space-y-4">
+                    {paymentData.cartItems.map((item, index) => (
+                      <div key={index} className="p-4 bg-green-50 rounded-lg">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-gray-900 text-lg">{item.product.name}</h4>
+                            <p className="text-gray-600 mt-1">{item.product.description}</p>
+                            <p className="text-sm text-gray-500 mt-2">
+                              Cantidad: {item.quantity} × {formatCurrency(item.product.price)}
+                            </p>
+                          </div>
+                          <div className="text-right ml-4">
+                            <p className="text-xl font-bold text-green-600">
+                              {formatCurrency(item.product.price * item.quantity)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : paymentData.product && (
                 <div className="mb-8">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                     🛍️ Producto Comprado
@@ -493,6 +571,30 @@ const PaymentResultPage: React.FC = () => {
                           {formatCurrency(paymentData.product.price)}
                         </p>
                       </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {paymentData.deliveryInfo && (
+                <div className="mb-8">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    🚚 Información de Entrega
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg">
+                    <div>
+                      <p className="text-sm text-gray-600">Destinatario</p>
+                      <p className="font-semibold text-gray-900">{paymentData.deliveryInfo.recipientName}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Teléfono</p>
+                      <p className="font-semibold text-gray-900">{paymentData.deliveryInfo.recipientPhone}</p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <p className="text-sm text-gray-600">Dirección</p>
+                      <p className="font-semibold text-gray-900">
+                        {paymentData.deliveryInfo.address}, {paymentData.deliveryInfo.city}, {paymentData.deliveryInfo.department} - {paymentData.deliveryInfo.postalCode}
+                      </p>
                     </div>
                   </div>
                 </div>
