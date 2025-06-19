@@ -4,14 +4,18 @@ frontend:
     preBuild:
       commands:
         - echo "Installing dependencies..."
-        - npm ci
+        - npm install
         - echo "Environment variables check:"
         - echo "VITE_API_URL=$VITE_API_URL"
         - echo "VITE_ENVIRONMENT=$VITE_ENVIRONMENT"
+        - echo "Node version:"
+        - node --version
+        - echo "NPM version:"
+        - npm --version
     build:
       commands:
         - echo "Building the project..."
-        - npm run build:prod
+        - npm run build
         - echo "Build completed successfully"
     postBuild:
       commands:
@@ -19,6 +23,8 @@ frontend:
         - ls -la dist/
         - echo "Checking if index.html exists:"
         - test -f dist/index.html && echo "✅ index.html found" || echo "❌ index.html missing"
+        - echo "Checking dist size:"
+        - du -sh dist/
   artifacts:
     baseDirectory: dist
     files:

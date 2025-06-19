@@ -1,14 +1,14 @@
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 
 // Configuración más robusta para evitar errores de tipos
-const getEnvVar = (key: string, defaultValue: string = ''): string => {
+const getApiUrl = (): string => {
   if (typeof import.meta !== 'undefined' && import.meta.env) {
-    return import.meta.env[key] || defaultValue;
+    return import.meta.env.VITE_API_URL || 'https://back-pasarela.onrender.com';
   }
-  return defaultValue;
+  return 'https://back-pasarela.onrender.com';
 };
 
-const API_URL = getEnvVar('VITE_API_URL', 'https://back-pasarela.onrender.com');
+const API_URL = getApiUrl();
 
 // Debug: Log de configuración (solo en desarrollo)
 if (typeof window !== 'undefined') {
