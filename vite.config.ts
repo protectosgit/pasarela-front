@@ -26,15 +26,15 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false, // Disable source maps in production for performance
-    minify: 'terser',
+    minify: 'esbuild', // Usar esbuild en lugar de terser (viene incluido)
     target: 'es2015',
     rollupOptions: {
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
           redux: ['@reduxjs/toolkit', 'react-redux'],
-          router: ['react-router-dom'],
-          axios: ['axios']
+          router: ['react-router-dom']
+          // Eliminar axios chunk ya que genera chunk vacío
         },
       },
     },
@@ -44,9 +44,9 @@ export default defineConfig({
   },
   // Environment variable handling for Amplify
   envPrefix: 'VITE_',
-  // Production optimizations
+  // Production optimizations con esbuild
   esbuild: {
-    drop: ['console', 'debugger'] // Remove console.log in production
+    drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : []
   }
 })
 
