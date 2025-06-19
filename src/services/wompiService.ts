@@ -12,6 +12,7 @@ export class WompiService {
   static readonly WOMPI_CHECKOUT_URL = 'https://checkout.co.uat.wompi.dev/p/';
   static readonly WOMPI_PUBLIC_KEY = 'pub_stagtest_g2u0HQd3ZMh05hsSgTS2lUV8t3s4mOt7';
   static readonly BACKEND_URL = 'https://back-pasarela.onrender.com';
+  static readonly FRONTEND_URL = 'https://main.d10nqda7yg14nv.amplifyapp.com';
 
   /**
    * Inicialización del servicio con logs
@@ -139,7 +140,7 @@ export class WompiService {
         { name: 'reference', value: reference },
         { name: 'signature:integrity', value: integrityData.integrity },
         { name: 'customer-email', value: customerEmail },
-        { name: 'redirect-url', value: `${window.location.origin}/payment-result` },
+        { name: 'redirect-url', value: `${this.FRONTEND_URL}/payment-result` },
       ];
 
       formFields.forEach((field) => {
@@ -154,7 +155,6 @@ export class WompiService {
       formFields.forEach(field => {
         urlParams.append(field.name, field.value);
       });
-      // const fullUrl = `${this.WOMPI_CHECKOUT_URL}?${urlParams.toString()}`;
 
       document.body.appendChild(form);
 

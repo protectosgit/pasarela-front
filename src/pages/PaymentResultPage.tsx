@@ -70,6 +70,38 @@ const PaymentResultPage: React.FC = () => {
       
       if (!response.ok) {
         if (response.status === 404) {
+          // Consultar directamente en Wompi API
+          try {
+            const wompiResponse = await fetch(`https://back-pasarela.onrender.com/api/payments/${referenceToUse}/check-wompi`, {
+              headers: {
+                'ngrok-skip-browser-warning': 'true',
+              }
+            });
+
+            if (wompiResponse.ok) {
+              const wompiData = await wompiResponse.json();
+              if (wompiData.success && wompiData.data) {
+                setPaymentData({
+                  id: Date.now(),
+                  reference: referenceToUse,
+                  amount: wompiData.data.amount_in_cents / 100,
+                  status: mapWompiStatusToInternal(wompiData.data.status),
+                  createdAt: wompiData.data.created_at,
+                  updatedAt: wompiData.data.updated_at || wompiData.data.created_at,
+                  paymentMethod: 'Tarjeta de Crédito',
+                  paymentToken: wompiData.data.id,
+                  wompiTransactionId: wompiData.data.id,
+                  customer: getCustomerFromRedux(),
+                  product: getProductFromRedux()
+                });
+                setPaymentStatus(mapWompiStatusToInternal(wompiData.data.status));
+                return mapWompiStatusToInternal(wompiData.data.status);
+              }
+            }
+          } catch (wompiError) {
+            // Si falla consulta directa, intentar crear transacción
+          }
+
           const state = store.getState() as RootState;
           
           const amountFromUrl = urlParams.get('amount_in_cents') 
@@ -192,6 +224,45 @@ const PaymentResultPage: React.FC = () => {
       return 'ERROR_NETWORK';
     }
   }, [reference, transactionId, store]);
+
+  // Función auxiliar para mapear estado de Wompi
+  const mapWompiStatusToInternal = (wompiStatus: string): string => {
+    const statusMap: { [key: string]: string } = {
+      'APPROVED': 'APPROVED',
+      'PENDING': 'PENDING', 
+      'DECLINED': 'DECLINED',
+      'VOIDED': 'FAILED',
+      'ERROR': 'FAILED',
+      'FAILED': 'FAILED'
+    };
+    return statusMap[wompiStatus] || 'PENDING';
+  };
+
+  // Función auxiliar para obtener cliente del Redux
+  const getCustomerFromRedux = () => {
+    const state = store.getState() as RootState;
+    return state.payment.customer ? {
+      id: 0,
+      firstName: state.payment.customer.firstName,
+      lastName: state.payment.customer.lastName,
+      email: state.payment.customer.email,
+      phone: state.payment.customer.phone,
+      documentType: '',
+      documentNumber: ''
+    } : undefined;
+  };
+
+  // Función auxiliar para obtener producto del Redux
+  const getProductFromRedux = () => {
+    const state = store.getState() as RootState;
+    return state.payment.cartItems?.[0]?.product ? {
+      id: parseInt(state.payment.cartItems[0].product.id.toString()),
+      name: state.payment.cartItems[0].product.name,
+      description: state.payment.cartItems[0].product.description,
+      price: parseFloat(state.payment.cartItems[0].product.price.toString()),
+      stock: state.payment.cartItems[0].product.stock
+    } : undefined;
+  };
 
   useEffect(() => {
     let isMounted = true;
