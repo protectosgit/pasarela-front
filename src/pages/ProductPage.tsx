@@ -6,7 +6,8 @@ import {
   updateCartItemQuantity, 
   setProduct 
 } from '../redux/paymentSlice';
-import { productService } from '../api/services';
+// TEMPORAL: Usando fetch service para debug
+import { productServiceFetch as productService } from '../api/fetchService';
 import type { Product } from '../types';
 import FloatingCart from '../components/FloatingCart';
 

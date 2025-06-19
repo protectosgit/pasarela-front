@@ -1,0 +1,29 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - echo "Installing dependencies..."
+        - npm ci
+        - echo "Environment variables check:"
+        - echo "VITE_API_URL=$VITE_API_URL"
+        - echo "VITE_ENVIRONMENT=$VITE_ENVIRONMENT"
+    build:
+      commands:
+        - echo "Building the project..."
+        - npm run build:prod
+        - echo "Build completed successfully"
+    postBuild:
+      commands:
+        - echo "Post-build verification..."
+        - ls -la dist/
+        - echo "Checking if index.html exists:"
+        - test -f dist/index.html && echo "✅ index.html found" || echo "❌ index.html missing"
+  artifacts:
+    baseDirectory: dist
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
+      - .npm/**/* 

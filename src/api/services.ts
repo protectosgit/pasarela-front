@@ -1,4 +1,5 @@
-import api from './axiosConfig';
+// TEMPORAL: Usando configuración de emergencia para debug
+import api from './axiosConfig.emergency';
 import type { Product, CustomerInfo, DeliveryInfo } from '../types';
 
 // Interfaz para la respuesta de la API
