@@ -123,7 +123,7 @@ const PaymentResultPage: React.FC = () => {
             if (wompiResponse.ok) {
               const wompiData = await wompiResponse.json();
               if (wompiData.success && wompiData.data) {
-                setPaymentData({
+                setPaymentData(prevData => ({
                   id: Date.now(),
                   reference: referenceToUse,
                   amount: wompiData.data.amount_in_cents / 100,
@@ -138,7 +138,7 @@ const PaymentResultPage: React.FC = () => {
                   deliveryInfo: (store.getState() as RootState).payment.delivery,
                   customer: getCustomerFromRedux(),
                   product: getProductFromRedux()
-                });
+                }));
                 setPaymentStatus(mapWompiStatusToInternal(wompiData.data.status));
                 return mapWompiStatusToInternal(wompiData.data.status);
               }
@@ -184,7 +184,7 @@ const PaymentResultPage: React.FC = () => {
             
             if (createdData.success) {
               const state = store.getState() as RootState;
-              setPaymentData({
+              setPaymentData(prevData => ({
                 id: createdData.data.id,
                 reference: createdData.data.reference || referenceToUse,
                 amount: totalAmount,
@@ -213,7 +213,7 @@ const PaymentResultPage: React.FC = () => {
                   stock: state.payment.cartItems[0].product.stock
                 } : undefined,
                 wompiTransactionId: createdData.data.wompiTransactionId
-              });
+              }));
               setPaymentStatus(createdData.data.status);
               return createdData.data.status;
             }
@@ -233,19 +233,19 @@ const PaymentResultPage: React.FC = () => {
         
         const state = store.getState() as RootState;
         
-        setPaymentData({
+        setPaymentData(prevData => ({
           id: paymentInfo.id,
           reference: paymentInfo.reference || referenceToUse,
-          amount: paymentInfo.amount > 0 ? paymentInfo.amount : state.payment.cartTotal,
+          amount: paymentInfo.amount > 0 ? paymentInfo.amount : (prevData?.amount || state.payment.cartTotal),
           status: paymentInfo.status,
           createdAt: paymentInfo.createdAt,
           updatedAt: paymentInfo.updatedAt,
           paymentMethod: paymentInfo.paymentMethod || 'Tarjeta de Crédito',
           paymentToken: paymentInfo.paymentToken,
-          cartItems: paymentInfo.cartItems || transformCartItems(state.payment.cartItems || []),
-          totalItems: paymentInfo.totalItems || (paymentInfo.cartItems ? paymentInfo.cartItems.reduce((sum: number, item: any) => sum + item.quantity, 0) : 0),
-          deliveryInfo: paymentInfo.deliveryInfo || state.payment.delivery,
-          customer: paymentInfo.customer || (state.payment.customer ? {
+          cartItems: paymentInfo.cartItems || prevData?.cartItems || transformCartItems(state.payment.cartItems || []),
+          totalItems: paymentInfo.totalItems || prevData?.totalItems || (paymentInfo.cartItems ? paymentInfo.cartItems.reduce((sum: number, item: any) => sum + item.quantity, 0) : 0),
+          deliveryInfo: paymentInfo.deliveryInfo || prevData?.deliveryInfo || state.payment.delivery,
+          customer: paymentInfo.customer || prevData?.customer || (state.payment.customer ? {
             id: 0,
             firstName: state.payment.customer.firstName,
             lastName: state.payment.customer.lastName,
@@ -254,15 +254,15 @@ const PaymentResultPage: React.FC = () => {
             documentType: '',
             documentNumber: ''
           } : undefined),
-          product: paymentInfo.product || (state.payment.cartItems?.[0]?.product ? {
+          product: paymentInfo.product || prevData?.product || (state.payment.cartItems?.[0]?.product ? {
             id: parseInt(state.payment.cartItems[0].product.id.toString()),
             name: state.payment.cartItems[0].product.name,
             description: state.payment.cartItems[0].product.description,
             price: parseFloat(state.payment.cartItems[0].product.price.toString()),
             stock: state.payment.cartItems[0].product.stock
           } : undefined),
-          wompiTransactionId: paymentInfo.wompiTransactionId
-        });
+          wompiTransactionId: paymentInfo.wompiTransactionId || prevData?.wompiTransactionId
+        }));
         
         setPaymentStatus(paymentInfo.status);
         return paymentInfo.status;
@@ -340,10 +340,11 @@ const PaymentResultPage: React.FC = () => {
 
       if (loading) setLoading(false);
 
-      if (statusObtained === 'PENDING') {
+      if (statusObtained === 'PENDING' || statusObtained === 'PROCESSING') {
         timeoutRef.current = window.setTimeout(consultAndSchedule, RETRY_INTERVAL);
       } else {
         setUpdatingStatus(false);
+        console.log(`🎉 Pago finalizado con estado: ${statusObtained}`);
       }
     };
 
@@ -416,6 +417,59 @@ const PaymentResultPage: React.FC = () => {
     dispatch(resetEverything());
     dispatch(setCurrentStep(1));
     navigate('/');
+  };
+
+  const handleSimulateApproval = async () => {
+    if (!paymentData?.reference) return;
+    
+    try {
+      setUpdatingStatus(true);
+      console.log('🎯 Simulando aprobación del pago...');
+      
+      // Simular webhook de aprobación
+      const webhookData = {
+        data: {
+          transaction: {
+            id: `${paymentData.reference}-APPROVED`,
+            reference: paymentData.reference,
+            amount_in_cents: Math.round(paymentData.amount * 100),
+            status: "APPROVED",
+            payment_method_type: "CARD"
+          }
+        },
+        event: "transaction.updated",
+        signature: {
+          checksum: "test-simulation"
+        }
+      };
+      
+      const response = await fetch('https://back-pasarela.onrender.com/api/payments/webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
+        },
+        body: JSON.stringify(webhookData)
+      });
+      
+      if (response.ok) {
+        console.log('✅ Webhook simulado enviado');
+        
+        // Esperar un momento y consultar el estado actualizado
+        setTimeout(async () => {
+          const statusObtained = await fetchPaymentStatus();
+          console.log('📊 Nuevo estado:', statusObtained);
+          setUpdatingStatus(false);
+        }, 2000);
+      } else {
+        console.error('❌ Error al simular webhook');
+        setUpdatingStatus(false);
+      }
+      
+    } catch (error) {
+      console.error('❌ Error:', error);
+      setUpdatingStatus(false);
+    }
   };
 
   if (loading && !paymentData) {
@@ -609,13 +663,32 @@ const PaymentResultPage: React.FC = () => {
             </div>
           )}
 
-          <div className="px-6 py-4 bg-gray-50 border-t flex justify-center">
+          <div className="px-6 py-4 bg-gray-50 border-t flex flex-col gap-3 items-center">
             <button
               onClick={handleBackToStore}
               className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
             >
               Volver a la Tienda
             </button>
+            
+            {paymentData && paymentStatus === 'PENDING' && (
+              <button
+                onClick={handleSimulateApproval}
+                disabled={updatingStatus}
+                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {updatingStatus ? (
+                  <>
+                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                    Procesando...
+                  </>
+                ) : (
+                  <>
+                    🎯 Simular Aprobación (Testing)
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>
