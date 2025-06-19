@@ -422,7 +422,7 @@ const CreditCardModal: React.FC<CreditCardModalProps> = ({ isOpen, onClose }) =>
                       value={formData.city}
                       onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
                       className={`input-field ${errors.city ? 'input-error' : ''}`}
-                      placeholder="Bogotá"
+                      placeholder="Medellín"
                     />
                     {errors.city && <p className="text-error-600 text-sm mt-1">{errors.city}</p>}
                   </div>
@@ -436,7 +436,7 @@ const CreditCardModal: React.FC<CreditCardModalProps> = ({ isOpen, onClose }) =>
                       value={formData.department}
                       onChange={(e) => setFormData(prev => ({ ...prev, department: e.target.value }))}
                       className={`input-field ${errors.department ? 'input-error' : ''}`}
-                      placeholder="Cundinamarca"
+                      placeholder="Antioquia"
                     />
                     {errors.department && <p className="text-error-600 text-sm mt-1">{errors.department}</p>}
                   </div>
@@ -451,7 +451,7 @@ const CreditCardModal: React.FC<CreditCardModalProps> = ({ isOpen, onClose }) =>
                     value={formData.postalCode}
                     onChange={(e) => setFormData(prev => ({ ...prev, postalCode: e.target.value }))}
                     className={`input-field ${errors.postalCode ? 'input-error' : ''}`}
-                    placeholder="110111"
+                    placeholder="05001"
                   />
                   {errors.postalCode && <p className="text-error-600 text-sm mt-1">{errors.postalCode}</p>}
                 </div>

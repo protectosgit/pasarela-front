@@ -295,12 +295,6 @@ const PaymentResultPage: React.FC = () => {
     navigate('/');
   };
 
-  const handleNewPayment = () => {
-    dispatch(resetEverything());
-    dispatch(setCurrentStep(1));
-    navigate('/');
-  };
-
   if (loading && !paymentData) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -442,16 +436,10 @@ const PaymentResultPage: React.FC = () => {
             </div>
           )}
 
-          <div className="px-6 py-4 bg-gray-50 border-t flex flex-col sm:flex-row gap-4 justify-end">
-            <button
-              onClick={handleNewPayment}
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
-            >
-              Hacer Otra Compra
-            </button>
+          <div className="px-6 py-4 bg-gray-50 border-t flex justify-center">
             <button
               onClick={handleBackToStore}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+              className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
             >
               Volver a la Tienda
             </button>
