@@ -12,28 +12,26 @@ export const productService = {
   // Obtener todos los productos
   getAllProducts: async (): Promise<Product[]> => {
     try {
-      const response = await api.get<ApiResponse<Product[]>>('/api/products');
+      const response = await api.get<ApiResponse<Product[]>>('/products');
       if (!response.data.success) {
         throw new Error(response.data.message || 'Error al obtener los productos');
       }
       return response.data.data;
     } catch (error: any) {
-      console.error('Error en getAllProducts:', error.response?.data || error.message);
-      throw new Error(error.response?.data?.message || 'Error al conectar con el servidor');
+      throw new Error(error.response?.data?.message || 'Error al obtener productos');
     }
   },
 
   // Obtener un producto específico por ID
   getProduct: async (id: string): Promise<Product> => {
     try {
-      const response = await api.get<ApiResponse<Product>>(`/api/products/${id}`);
+      const response = await api.get<ApiResponse<Product>>(`/products/${id}`);
       if (!response.data.success) {
         throw new Error(response.data.message || 'Error al obtener el producto');
       }
       return response.data.data;
     } catch (error: any) {
-      console.error('Error en getProduct:', error.response?.data || error.message);
-      throw new Error(error.response?.data?.message || 'Error al obtener el producto');
+      throw new Error(error.response?.data?.message || 'Error al obtener producto');
     }
   },
 
@@ -57,12 +55,13 @@ export const productService = {
       }
       return response.data.data;
     } catch (error: any) {
-      console.error('Error en getProductsByPage:', error.response?.data || error.message);
-      throw new Error(error.response?.data?.message || 'Error al obtener los productos paginados');
+      throw new Error(error.response?.data?.message || 'Error al obtener productos paginados');
     }
   },
 };
 
+// DESHABILITADO - Este servicio usa la API de transacciones que requiere firma en JSON
+// Usar WompiService en su lugar que usa formulario directo
 export const paymentService = {
   processPayment: async (data: {
     productId: string;
@@ -70,6 +69,10 @@ export const paymentService = {
     customerInfo: CustomerInfo;
     deliveryInfo: DeliveryInfo;
   }) => {
+    // DESHABILITADO: Este método usa la API de transacciones problemática
+    throw new Error('❌ PaymentService deshabilitado. Usar WompiService.processPayment() en su lugar');
+    
+    /*
     try {
       const response = await api.post<ApiResponse<any>>('/api/payments/process', data);
       if (!response.data.success) {
@@ -77,8 +80,8 @@ export const paymentService = {
       }
       return response.data.data;
     } catch (error: any) {
-      console.error('Error en processPayment:', error.response?.data || error.message);
-      throw new Error(error.response?.data?.message || 'Error al procesar el pago');
+      throw new Error(error.response?.data?.message || 'Error al procesar pago');
     }
+    */
   },
 }; 

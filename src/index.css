@@ -1,15 +1,188 @@
 /* src/index.css */
 
-/* 1. Incluye los estilos base, de componentes y de utilidades de Tailwind. */
-/* ¡Esto debe ir siempre al principio! */
+/* Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+/* Tailwind CSS */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* 2. (Opcional) Define estilos personalizados para elementos base usando @layer. */
-/* Esto asegura que tus estilos se apliquen correctamente y puedan ser sobreescritos por las utilidades de Tailwind si es necesario. */
+/* Global base styles */
 @layer base {
+  * {
+    @apply border-neutral-200;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
   body {
-    @apply bg-white text-black;
+    @apply bg-neutral-50 text-neutral-900 font-sans;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-neutral-100;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-neutral-300 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-neutral-400;
+  }
+
+  /* Focus styles */
+  *:focus {
+    @apply outline-none ring-2 ring-primary-500/20 ring-offset-2 ring-offset-neutral-0;
+  }
+
+  /* Selection styles */
+  ::selection {
+    @apply bg-primary-100 text-primary-900;
+  }
+}
+
+/* Custom component styles */
+@layer components {
+  /* Button styles */
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-6 py-3 text-base font-medium text-white bg-primary-600 border border-transparent rounded-xl shadow-soft hover:bg-primary-700 focus:ring-primary-500 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98];
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-6 py-3 text-base font-medium text-primary-700 bg-primary-50 border border-primary-200 rounded-xl shadow-soft hover:bg-primary-100 focus:ring-primary-500 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98];
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center px-6 py-3 text-base font-medium text-neutral-700 bg-white border border-neutral-300 rounded-xl shadow-soft hover:bg-neutral-50 focus:ring-primary-500 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98];
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded-lg transition-all duration-200;
+  }
+
+  /* Card styles */
+  .card {
+    @apply bg-white rounded-2xl shadow-soft border border-neutral-200;
+  }
+
+  .card-elevated {
+    @apply bg-white rounded-2xl shadow-medium border border-neutral-200 hover:shadow-strong transition-shadow duration-300;
+  }
+
+  .card-interactive {
+    @apply bg-white rounded-2xl shadow-soft border border-neutral-200 hover:shadow-medium hover:-translate-y-1 transition-all duration-300 cursor-pointer;
+  }
+
+  /* Input styles */
+  .input-field {
+    @apply w-full px-4 py-3 text-base text-neutral-900 bg-white border border-neutral-300 rounded-xl shadow-soft placeholder-neutral-400 focus:border-primary-500 focus:ring-primary-500 transition-colors duration-200;
+  }
+
+  .input-error {
+    @apply border-error-500 focus:border-error-500 focus:ring-error-500;
+  }
+
+  /* Badge styles */
+  .badge {
+    @apply inline-flex items-center px-3 py-1 text-xs font-medium rounded-full;
+  }
+
+  .badge-success {
+    @apply badge bg-success-100 text-success-800;
+  }
+
+  .badge-warning {
+    @apply badge bg-warning-100 text-warning-800;
+  }
+
+  .badge-error {
+    @apply badge bg-error-100 text-error-800;
+  }
+
+  .badge-primary {
+    @apply badge bg-primary-100 text-primary-800;
+  }
+
+  /* Loading spinner */
+  .spinner {
+    @apply inline-block w-6 h-6 border-2 border-neutral-200 border-t-primary-600 rounded-full animate-spin;
+  }
+
+  /* Progress bar */
+  .progress-bar {
+    @apply w-full bg-neutral-200 rounded-full h-2;
+  }
+
+  .progress-fill {
+    @apply h-full bg-gradient-to-r from-primary-500 to-primary-600 rounded-full transition-all duration-500 ease-out;
+  }
+}
+
+/* Utility styles */
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent;
+  }
+
+  .bg-gradient-primary {
+    @apply bg-gradient-to-r from-primary-500 to-primary-700;
+  }
+
+  .border-gradient {
+    @apply border border-transparent bg-gradient-to-r from-primary-500 to-primary-700 bg-clip-border;
+  }
+
+  /* Animations */
+  .animate-bounce-soft {
+    animation: bounce-soft 2s infinite;
+  }
+
+  @keyframes bounce-soft {
+    0%, 20%, 53%, 80%, 100% {
+      transform: translate3d(0,0,0);
+    }
+    40%, 43% {
+      transform: translate3d(0,-5px,0);
+    }
+    70% {
+      transform: translate3d(0,-3px,0);
+    }
+    90% {
+      transform: translate3d(0,-1px,0);
+    }
+  }
+
+  .floating {
+    animation: floating 3s ease-in-out infinite;
+  }
+
+  @keyframes floating {
+    0% { transform: translate(0, 0px); }
+    50% { transform: translate(0, -10px); }
+    100% { transform: translate(0, 0px); }
+  }
+
+  /* Container styles */
+  .container-responsive {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .container-narrow {
+    @apply max-w-4xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .container-wide {
+    @apply max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8;
   }
 }

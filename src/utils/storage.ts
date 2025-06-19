@@ -1,15 +1,23 @@
-import type { PaymentState } from '../types';
+import { PaymentState } from '../types';
 
-const STORAGE_KEY = 'payment_state';
+const STORAGE_KEY = 'wompi_payment_state';
 
-// Estado inicial por defecto
-const defaultState: PaymentState = {
-  product: null,
+export const defaultState: Partial<PaymentState> = {
+  currentStep: 1,
+  cartItems: [],
+  cartTotal: 0,
   customer: {
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
+  },
+  creditCard: {
+    cardNumber: '',
+    cardHolder: '',
+    expiryDate: '',
+    cvv: '',
+    cardType: null,
   },
   delivery: {
     address: '',
@@ -19,58 +27,55 @@ const defaultState: PaymentState = {
     recipientName: '',
     recipientPhone: '',
   },
+  fees: {
+    productAmount: 0,
+    baseFee: 2500,
+    deliveryFee: 5000,
+    totalAmount: 7500,
+  },
   transaction: {
     transactionId: '',
     status: 'pending',
     message: '',
     productNewStock: 0,
     wompiTransactionId: '',
+    reference: '',
+    amount: 0,
   },
   loading: false,
   error: null,
-  cartItems: [],
-  cartTotal: 0,
 };
 
-export const saveState = (state: PaymentState): void => {
+export const saveStateToStorage = (state: Partial<PaymentState>): void => {
   try {
-    // Asegurarnos de que cartItems sea un array antes de guardar
-    const safeState = {
-      ...state,
-      cartItems: Array.isArray(state.cartItems) ? state.cartItems : [],
-      cartTotal: typeof state.cartTotal === 'number' ? state.cartTotal : 0,
-    };
-    const serializedState = JSON.stringify(safeState);
-    localStorage.setItem(STORAGE_KEY, serializedState);
+    const serialized = JSON.stringify(state);
+    localStorage.setItem(STORAGE_KEY, serialized);
   } catch (err) {
-    console.error('Error saving state:', err);
+    // Silent fail
   }
 };
 
-export const loadState = (): PaymentState | undefined => {
+export const loadStateFromStorage = (): Partial<PaymentState> => {
   try {
-    const serializedState = localStorage.getItem(STORAGE_KEY);
-    if (!serializedState) return undefined;
+    const serialized = localStorage.getItem(STORAGE_KEY);
+    if (serialized === null) {
+      return defaultState;
+    }
     
-    const parsedState = JSON.parse(serializedState);
-    
-    // Asegurarnos de que el estado cargado tenga la estructura correcta
+    const parsed = JSON.parse(serialized);
     return {
       ...defaultState,
-      ...parsedState,
-      cartItems: Array.isArray(parsedState.cartItems) ? parsedState.cartItems : [],
-      cartTotal: typeof parsedState.cartTotal === 'number' ? parsedState.cartTotal : 0,
+      ...parsed,
     };
   } catch (err) {
-    console.error('Error loading state:', err);
-    return undefined;
+    return defaultState;
   }
 };
 
-export const clearState = (): void => {
+export const clearStateFromStorage = (): void => {
   try {
     localStorage.removeItem(STORAGE_KEY);
   } catch (err) {
-    console.error('Error clearing state:', err);
+    // Silent fail
   }
 }; 

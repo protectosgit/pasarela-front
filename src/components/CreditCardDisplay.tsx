@@ -28,7 +28,6 @@ const CreditCardDisplay: React.FC<CreditCardDisplayProps> = ({
   const displayName = cardHolder || 'NOMBRE DEL TITULAR';
   const displayExpiry = expiryDate || 'MM/YY';
 
-  // Color de fondo según el tipo de tarjeta
   const bgColor = cardType === 'mastercard' ? 'bg-black' : 'bg-[#1434CB]';
 
   return (

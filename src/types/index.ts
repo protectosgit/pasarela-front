@@ -21,7 +21,16 @@ export interface CustomerInfo {
   phone: string;
 }
 
-// Delivery types
+// Credit Card types
+export interface CreditCardInfo {
+  cardNumber: string;
+  cardHolder: string;
+  expiryDate: string;
+  cvv: string;
+  cardType?: 'visa' | 'mastercard' | null;
+}
+
+// Delivery types - REQUERIDO POR LA PRUEBA
 export interface DeliveryInfo {
   address: string;
   city: string;
@@ -31,6 +40,14 @@ export interface DeliveryInfo {
   recipientPhone: string;
 }
 
+// Fees types - REQUERIDO POR LA PRUEBA
+export interface FeesInfo {
+  productAmount: number;
+  baseFee: number;      // Fee base que siempre se agrega
+  deliveryFee: number;  // Fee de delivery
+  totalAmount: number;
+}
+
 // Transaction types
 export interface TransactionInfo {
   transactionId?: string;
@@ -38,14 +55,34 @@ export interface TransactionInfo {
   message?: string;
   productNewStock?: number;
   wompiTransactionId?: string;
+  reference?: string;
+  amount?: number;
 }
 
 // Payment State type
 export interface PaymentState {
+  // Step navigation
+  currentStep: 1 | 2 | 3 | 4 | 5; // 1: Product, 2: Payment Info, 3: Summary, 4: Processing, 5: Result
+  
+  // Data
   product: Product | null;
   customer: CustomerInfo;
+  creditCard: CreditCardInfo;
   delivery: DeliveryInfo;
+  fees: FeesInfo;
   transaction: TransactionInfo;
+  
+  // UI State
   loading: boolean;
   error: string | null;
-} 
+  cartItems: CartItem[];
+  cartTotal: number;
+}
+
+// Step types for better navigation control
+export type PaymentStep = 
+  | 'product'      // 1. Product page
+  | 'payment-info' // 2. Credit Card/Delivery info
+  | 'summary'      // 3. Summary
+  | 'processing'   // 4. Payment processing
+  | 'result';      // 5. Final status 

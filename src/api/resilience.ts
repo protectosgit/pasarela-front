@@ -54,31 +54,22 @@ export class ResilienceMiddleware {
   }
 }
 
-// Función para detectar si hay conexión a internet
-export const checkOnlineStatus = async (): Promise<boolean> => {
-  try {
-    await fetch('//google.com', {
-      mode: 'no-cors',
-    });
-    return true;
-  } catch {
-    return false;
-  }
+export const isOnline = (): boolean => {
+  return navigator.onLine;
 };
 
-// Función para esperar a que haya conexión
-export const waitForConnection = async (
-  checkInterval = 2000,
-  timeout = 30000
-): Promise<boolean> => {
-  const startTime = Date.now();
-
-  while (Date.now() - startTime < timeout) {
-    if (await checkOnlineStatus()) {
-      return true;
+export const waitForConnection = (): Promise<void> => {
+  return new Promise((resolve) => {
+    if (isOnline()) {
+      resolve();
+      return;
     }
-    await new Promise(resolve => setTimeout(resolve, checkInterval));
-  }
 
-  return false;
+    const handleOnline = () => {
+      window.removeEventListener('online', handleOnline);
+      resolve();
+    };
+
+    window.addEventListener('online', handleOnline);
+  });
 }; 

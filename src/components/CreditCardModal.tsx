@@ -1,119 +1,516 @@
-import { useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../hooks/useRedux';
-import { setTransactionInfo, clearCart } from '../redux/paymentSlice';
+import { 
+  setCustomerInfo, 
+  setCreditCardInfo, 
+  setDeliveryInfo, 
+  setCurrentStep 
+} from '../redux/paymentSlice';
+import CreditCardBrandDetector from './CreditCardBrandDetector';
 
 interface CreditCardModalProps {
+  isOpen: boolean;
   onClose: () => void;
 }
 
-declare global {
-  interface Window {
-    WidgetCheckout: new (config: any) => any;
-  }
-}
-
-const CreditCardModal: React.FC<CreditCardModalProps> = ({ onClose }) => {
-  const navigate = useNavigate();
+const CreditCardModal: React.FC<CreditCardModalProps> = ({ isOpen, onClose }) => {
   const dispatch = useAppDispatch();
-  const { cartItems, cartTotal } = useAppSelector((state) => state.payment);
-  const checkoutRef = useRef<any>(null);
+  
+  const [formData, setFormData] = useState({
+    // Customer info
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    
+    // Credit card info
+    cardNumber: '',
+    cardHolder: '',
+    expiryDate: '',
+    cvv: '',
+    
+    // Delivery info
+    address: '',
+    city: '',
+    department: '',
+    postalCode: '',
+    recipientName: '',
+    recipientPhone: '',
+  });
 
-  useEffect(() => {
-    // Cargar el script de Wompi
-    const script = document.createElement('script');
-    script.src = 'https://checkout.wompi.co/widget.js';
-    script.async = true;
-    document.body.appendChild(script);
+  const [currentTab, setCurrentTab] = useState<'personal' | 'card' | 'delivery'>('personal');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(false);
 
-    script.onload = () => {
-      if (cartItems.length > 0) {
-        const checkout = new window.WidgetCheckout({
-          currency: 'COP',
-          amountInCents: Math.round(cartTotal * 100),
-          reference: `CART-${Date.now()}`,
-          publicKey: import.meta.env.VITE_WOMPI_PUBLIC_KEY,
-          redirectUrl: window.location.origin + '/payment-result',
-        });
+  const formatCardNumber = (value: string) => {
+    const cleaned = value.replace(/\D/g, '');
+    const groups = cleaned.match(/.{1,4}/g) || [];
+    return groups.join(' ');
+  };
 
-        checkoutRef.current = checkout;
+  const handleCardNumberChange = (value: string) => {
+    let cleaned = value.replace(/\D/g, '');
+    if (cleaned.length > 16) cleaned = cleaned.slice(0, 16);
+    setFormData(prev => ({
+      ...prev,
+      cardNumber: formatCardNumber(cleaned),
+    }));
+  };
+
+  const handleExpiryDateChange = (value: string) => {
+    let cleaned = value.replace(/\D/g, '');
+    if (cleaned.length > 4) cleaned = cleaned.slice(0, 4);
+    if (cleaned.length >= 2) {
+      cleaned = cleaned.slice(0, 2) + '/' + cleaned.slice(2);
+    }
+    setFormData(prev => ({
+      ...prev,
+      expiryDate: cleaned,
+    }));
+  };
+
+  const validateCurrentTab = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (currentTab === 'personal') {
+      if (!formData.firstName.trim()) newErrors.firstName = 'Nombre requerido';
+      if (!formData.lastName.trim()) newErrors.lastName = 'Apellido requerido';
+      if (!formData.email.includes('@')) newErrors.email = 'Email inválido';
+      if (!formData.phone.trim()) newErrors.phone = 'Teléfono requerido';
+    } else if (currentTab === 'card') {
+      if (formData.cardNumber.replace(/\s/g, '').length !== 16) {
+        newErrors.cardNumber = 'Número de tarjeta debe tener 16 dígitos';
       }
-    };
+      if (!formData.cardHolder.trim()) newErrors.cardHolder = 'Nombre del titular requerido';
+      if (formData.expiryDate.length !== 5) newErrors.expiryDate = 'Fecha inválida (MM/YY)';
+      if (formData.cvv.length < 3) newErrors.cvv = 'CVV inválido';
+    } else if (currentTab === 'delivery') {
+      if (!formData.address.trim()) newErrors.address = 'Dirección requerida';
+      if (!formData.city.trim()) newErrors.city = 'Ciudad requerida';
+      if (!formData.department.trim()) newErrors.department = 'Departamento requerido';
+      if (!formData.postalCode.trim()) newErrors.postalCode = 'Código postal requerido';
+      if (!formData.recipientName.trim()) newErrors.recipientName = 'Nombre del destinatario requerido';
+      if (!formData.recipientPhone.trim()) newErrors.recipientPhone = 'Teléfono del destinatario requerido';
+    }
 
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, [cartItems, cartTotal]);
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-  const handlePayment = () => {
-    if (checkoutRef.current) {
-      checkoutRef.current.open((result: any) => {
-        const transactionInfo = {
-          transactionId: result.transaction.id,
-          status: result.transaction.status,
-          wompiTransactionId: result.transaction.id,
-        };
-        
-        dispatch(setTransactionInfo(transactionInfo));
-        dispatch(clearCart()); // Limpiar el carrito después de un pago exitoso
-        navigate('/payment-result');
-      });
+  const handleNext = () => {
+    if (!validateCurrentTab()) return;
+
+    if (currentTab === 'personal') {
+      setCurrentTab('card');
+    } else if (currentTab === 'card') {
+      setCurrentTab('delivery');
+    } else {
+      handleSubmit();
     }
   };
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg max-w-md w-full">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium">Pago con Tarjeta de Crédito</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-500"
-          >
-            <span className="sr-only">Cerrar</span>
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+  const handleSubmit = async () => {
+    if (!validateCurrentTab()) return;
 
-        <div className="space-y-4">
-          <div className="border-t border-b py-4">
-            <h4 className="font-medium mb-2">Resumen del Carrito</h4>
-            {cartItems.map((item) => (
-              <div key={item.product.id} className="flex justify-between text-sm">
-                <span>{item.product.name} x {item.quantity}</span>
-                <span>${(item.product.price * item.quantity).toFixed(2)}</span>
-              </div>
-            ))}
-            <div className="flex justify-between font-bold mt-2 pt-2 border-t">
-              <span>Total:</span>
-              <span>${cartTotal.toFixed(2)}</span>
+    setIsLoading(true);
+
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Detect card type
+      const number = formData.cardNumber.replace(/\s/g, '');
+      let cardType: 'visa' | 'mastercard' | null = null;
+      
+      if (number.startsWith('4')) {
+        cardType = 'visa';
+      } else if (
+        (number.startsWith('5') && ['1', '2', '3', '4', '5'].includes(number[1])) ||
+        (number.startsWith('2') && 
+          parseInt(number.substring(0, 4)) >= 2221 && 
+          parseInt(number.substring(0, 4)) <= 2720)
+      ) {
+        cardType = 'mastercard';
+      }
+
+      dispatch(setCustomerInfo({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+      }));
+
+      dispatch(setCreditCardInfo({
+        cardNumber: formData.cardNumber,
+        cardHolder: formData.cardHolder,
+        expiryDate: formData.expiryDate,
+        cvv: formData.cvv,
+        cardType,
+      }));
+
+      dispatch(setDeliveryInfo({
+        address: formData.address,
+        city: formData.city,
+        department: formData.department,
+        postalCode: formData.postalCode,
+        recipientName: formData.recipientName,
+        recipientPhone: formData.recipientPhone,
+      }));
+
+      dispatch(setCurrentStep(2));
+      onClose();
+    } catch (error) {
+      // Handle error silently
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const tabs = [
+    { 
+      id: 'personal', 
+      title: 'Personal', 
+      icon: '👤',
+      description: 'Información personal'
+    },
+    { 
+      id: 'card', 
+      title: 'Tarjeta', 
+      icon: '💳',
+      description: 'Datos de la tarjeta'
+    },
+    { 
+      id: 'delivery', 
+      title: 'Entrega', 
+      icon: '📦',
+      description: 'Dirección de entrega'
+    }
+  ];
+
+  if (!isOpen) return null;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 bg-neutral-900/80 backdrop-blur-sm z-50 animate-fadeIn"
+        onClick={onClose}
+      />
+      
+      {/* Modal */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
+        <div className="bg-white rounded-2xl sm:rounded-3xl shadow-strong w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] flex flex-col animate-scaleIn">
+          {/* Header */}
+          <div className="relative bg-gradient-primary text-white p-4 sm:p-6 rounded-t-2xl sm:rounded-t-3xl">
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full hover:bg-white/20 flex items-center justify-center transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            
+            <div className="text-center">
+              <h2 className="text-2xl font-bold mb-2">Información de Pago</h2>
+              <p className="text-primary-100">Completa los datos para proceder</p>
             </div>
           </div>
 
-          <p className="text-sm text-gray-500">
-            Serás redirigido al procesador de pagos seguro de Wompi para completar tu compra.
-          </p>
+          {/* Tab Navigation */}
+          <div className="border-b border-neutral-200 bg-neutral-50">
+            <div className="flex">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setCurrentTab(tab.id as any)}
+                  className={`flex-1 px-4 py-4 text-sm font-medium transition-colors ${
+                    currentTab === tab.id
+                      ? 'text-primary-600 border-b-2 border-primary-600 bg-white'
+                      : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-lg">{tab.icon}</span>
+                    <div className="text-left">
+                      <div className="font-semibold">{tab.title}</div>
+                      <div className="text-xs text-neutral-500">{tab.description}</div>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
 
-          <div className="flex justify-end space-x-3">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={handlePayment}
-              className="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700"
-              disabled={cartItems.length === 0}
-            >
-              Proceder al Pago
-            </button>
+          {/* Form Content */}
+          <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
+            {currentTab === 'personal' && (
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-neutral-900 mb-4">Información Personal</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      Nombre
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.firstName}
+                      onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                      className={`input-field ${errors.firstName ? 'input-error' : ''}`}
+                      placeholder="Tu nombre"
+                    />
+                    {errors.firstName && <p className="text-error-600 text-sm mt-1">{errors.firstName}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      Apellido
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.lastName}
+                      onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                      className={`input-field ${errors.lastName ? 'input-error' : ''}`}
+                      placeholder="Tu apellido"
+                    />
+                    {errors.lastName && <p className="text-error-600 text-sm mt-1">{errors.lastName}</p>}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    className={`input-field ${errors.email ? 'input-error' : ''}`}
+                    placeholder="tu@email.com"
+                  />
+                  {errors.email && <p className="text-error-600 text-sm mt-1">{errors.email}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Teléfono
+                  </label>
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                    className={`input-field ${errors.phone ? 'input-error' : ''}`}
+                    placeholder="+57 300 123 4567"
+                  />
+                  {errors.phone && <p className="text-error-600 text-sm mt-1">{errors.phone}</p>}
+                </div>
+              </div>
+            )}
+
+            {currentTab === 'card' && (
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-neutral-900 mb-4">Datos de la Tarjeta</h3>
+                
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Número de Tarjeta
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={formData.cardNumber}
+                      onChange={(e) => handleCardNumberChange(e.target.value)}
+                      className={`input-field pr-16 ${errors.cardNumber ? 'input-error' : ''}`}
+                      placeholder="1234 5678 9012 3456"
+                      maxLength={19}
+                    />
+                    <CreditCardBrandDetector cardNumber={formData.cardNumber} />
+                  </div>
+                  {errors.cardNumber && <p className="text-error-600 text-sm mt-1">{errors.cardNumber}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Nombre del Titular
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.cardHolder}
+                    onChange={(e) => setFormData(prev => ({ ...prev, cardHolder: e.target.value.toUpperCase() }))}
+                    className={`input-field ${errors.cardHolder ? 'input-error' : ''}`}
+                    placeholder="NOMBRE COMO APARECE EN LA TARJETA"
+                  />
+                  {errors.cardHolder && <p className="text-error-600 text-sm mt-1">{errors.cardHolder}</p>}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      Fecha de Vencimiento
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.expiryDate}
+                      onChange={(e) => handleExpiryDateChange(e.target.value)}
+                      className={`input-field ${errors.expiryDate ? 'input-error' : ''}`}
+                      placeholder="MM/YY"
+                      maxLength={5}
+                    />
+                    {errors.expiryDate && <p className="text-error-600 text-sm mt-1">{errors.expiryDate}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      CVV
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.cvv}
+                      onChange={(e) => setFormData(prev => ({ ...prev, cvv: e.target.value.replace(/\D/g, '').slice(0, 4) }))}
+                      className={`input-field ${errors.cvv ? 'input-error' : ''}`}
+                      placeholder="123"
+                      maxLength={4}
+                    />
+                    {errors.cvv && <p className="text-error-600 text-sm mt-1">{errors.cvv}</p>}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {currentTab === 'delivery' && (
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-neutral-900 mb-4">Información de Entrega</h3>
+                
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Dirección
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.address}
+                    onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                    className={`input-field ${errors.address ? 'input-error' : ''}`}
+                    placeholder="Calle 123 #45-67"
+                  />
+                  {errors.address && <p className="text-error-600 text-sm mt-1">{errors.address}</p>}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      Ciudad
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.city}
+                      onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                      className={`input-field ${errors.city ? 'input-error' : ''}`}
+                      placeholder="Bogotá"
+                    />
+                    {errors.city && <p className="text-error-600 text-sm mt-1">{errors.city}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      Departamento
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.department}
+                      onChange={(e) => setFormData(prev => ({ ...prev, department: e.target.value }))}
+                      className={`input-field ${errors.department ? 'input-error' : ''}`}
+                      placeholder="Cundinamarca"
+                    />
+                    {errors.department && <p className="text-error-600 text-sm mt-1">{errors.department}</p>}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Código Postal
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.postalCode}
+                    onChange={(e) => setFormData(prev => ({ ...prev, postalCode: e.target.value }))}
+                    className={`input-field ${errors.postalCode ? 'input-error' : ''}`}
+                    placeholder="110111"
+                  />
+                  {errors.postalCode && <p className="text-error-600 text-sm mt-1">{errors.postalCode}</p>}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      Nombre del Destinatario
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.recipientName}
+                      onChange={(e) => setFormData(prev => ({ ...prev, recipientName: e.target.value }))}
+                      className={`input-field ${errors.recipientName ? 'input-error' : ''}`}
+                      placeholder="Nombre completo"
+                    />
+                    {errors.recipientName && <p className="text-error-600 text-sm mt-1">{errors.recipientName}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      Teléfono del Destinatario
+                    </label>
+                    <input
+                      type="tel"
+                      value={formData.recipientPhone}
+                      onChange={(e) => setFormData(prev => ({ ...prev, recipientPhone: e.target.value }))}
+                      className={`input-field ${errors.recipientPhone ? 'input-error' : ''}`}
+                      placeholder="+57 300 123 4567"
+                    />
+                    {errors.recipientPhone && <p className="text-error-600 text-sm mt-1">{errors.recipientPhone}</p>}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Footer - Fixed at bottom */}
+          <div className="flex-shrink-0 border-t border-neutral-200 p-4 sm:p-6 bg-neutral-50 rounded-b-3xl">
+            <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4">
+              <button
+                onClick={() => {
+                  if (currentTab === 'personal') {
+                    onClose();
+                  } else if (currentTab === 'card') {
+                    setCurrentTab('personal');
+                  } else {
+                    setCurrentTab('card');
+                  }
+                }}
+                className="btn-outline px-6 py-3 flex-shrink-0 order-2 sm:order-1"
+              >
+                {currentTab === 'personal' ? 'Cancelar' : 'Anterior'}
+              </button>
+
+              <button
+                onClick={handleNext}
+                disabled={isLoading}
+                className={`btn-primary px-8 py-3 flex-shrink-0 order-1 sm:order-2 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="spinner w-4 h-4" />
+                    <span>Procesando...</span>
+                  </div>
+                ) : currentTab === 'delivery' ? (
+                  <span>Continuar al Resumen</span>
+                ) : (
+                  <span>Siguiente</span>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

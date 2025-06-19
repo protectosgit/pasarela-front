@@ -1,8 +1,8 @@
 import { configureStore } from '@reduxjs/toolkit';
 import paymentReducer from './paymentSlice';
-import { loadState, saveState } from '../utils/storage';
+import { loadStateFromStorage, saveStateToStorage } from '../utils/storage';
 
-const preloadedState = loadState();
+const preloadedState = loadStateFromStorage();
 
 export const store = configureStore({
   reducer: {
@@ -16,7 +16,7 @@ export const store = configureStore({
 });
 
 store.subscribe(() => {
-  saveState(store.getState().payment);
+  saveStateToStorage(store.getState().payment);
 });
 
 // Infer the `RootState` and `AppDispatch` types from the store itself
