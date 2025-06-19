@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
   server: {
     port: 5173,
@@ -44,9 +44,9 @@ export default defineConfig({
   },
   // Environment variable handling for Amplify
   envPrefix: 'VITE_',
-  // Production optimizations con esbuild
+  // Production optimizations con esbuild - configuración simplificada
   esbuild: {
-    drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : []
+    drop: mode === 'production' ? ['console', 'debugger'] : []
   }
-})
+}))
 
