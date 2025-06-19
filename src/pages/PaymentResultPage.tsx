@@ -184,10 +184,13 @@ const PaymentResultPage: React.FC = () => {
             
             if (createdData.success) {
               const state = store.getState() as RootState;
+              const finalAmount = (parseFloat(createdData.data.amount) || 0) > 0 ? parseFloat(createdData.data.amount) : (state.payment.cartTotal);
+              console.log('💰 Amount final asignado:', finalAmount);
+              
               setPaymentData({
                 id: createdData.data.id,
                 reference: createdData.data.reference || referenceToUse,
-                amount: totalAmount,
+                amount: finalAmount,
                 status: createdData.data.status,
                 createdAt: createdData.data.createdAt,
                 updatedAt: createdData.data.updatedAt,
@@ -231,12 +234,22 @@ const PaymentResultPage: React.FC = () => {
       if (result.success && result.data) {
         const paymentInfo = result.data;
         
+        // DEBUG: Log para entender qué datos llegan
+        console.log('🔍 === DATOS DEL BACKEND ===');
+        console.log('Amount recibido:', paymentInfo.amount, 'tipo:', typeof paymentInfo.amount);
+        console.log('Amount parseado:', parseFloat(paymentInfo.amount));
+        console.log('CartItems:', paymentInfo.cartItems?.length || 0);
+        console.log('Status:', paymentInfo.status);
+        
         const state = store.getState() as RootState;
+        
+        const finalAmount = (parseFloat(paymentInfo.amount) || 0) > 0 ? parseFloat(paymentInfo.amount) : (state.payment.cartTotal);
+        console.log('💰 Amount final asignado:', finalAmount);
         
         setPaymentData(prevData => ({
           id: paymentInfo.id,
           reference: paymentInfo.reference || referenceToUse,
-          amount: paymentInfo.amount > 0 ? paymentInfo.amount : (prevData?.amount || state.payment.cartTotal),
+          amount: finalAmount,
           status: paymentInfo.status,
           createdAt: paymentInfo.createdAt,
           updatedAt: paymentInfo.updatedAt,
@@ -417,59 +430,6 @@ const PaymentResultPage: React.FC = () => {
     dispatch(resetEverything());
     dispatch(setCurrentStep(1));
     navigate('/');
-  };
-
-  const handleSimulateApproval = async () => {
-    if (!paymentData?.reference) return;
-    
-    try {
-      setUpdatingStatus(true);
-      console.log('🎯 Simulando aprobación del pago...');
-      
-      // Simular webhook de aprobación
-      const webhookData = {
-        data: {
-          transaction: {
-            id: `${paymentData.reference}-APPROVED`,
-            reference: paymentData.reference,
-            amount_in_cents: Math.round(paymentData.amount * 100),
-            status: "APPROVED",
-            payment_method_type: "CARD"
-          }
-        },
-        event: "transaction.updated",
-        signature: {
-          checksum: "test-simulation"
-        }
-      };
-      
-      const response = await fetch('https://back-pasarela.onrender.com/api/payments/webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true',
-        },
-        body: JSON.stringify(webhookData)
-      });
-      
-      if (response.ok) {
-        console.log('✅ Webhook simulado enviado');
-        
-        // Esperar un momento y consultar el estado actualizado
-        setTimeout(async () => {
-          const statusObtained = await fetchPaymentStatus();
-          console.log('📊 Nuevo estado:', statusObtained);
-          setUpdatingStatus(false);
-        }, 2000);
-      } else {
-        console.error('❌ Error al simular webhook');
-        setUpdatingStatus(false);
-      }
-      
-    } catch (error) {
-      console.error('❌ Error:', error);
-      setUpdatingStatus(false);
-    }
   };
 
   if (loading && !paymentData) {
@@ -663,32 +623,13 @@ const PaymentResultPage: React.FC = () => {
             </div>
           )}
 
-          <div className="px-6 py-4 bg-gray-50 border-t flex flex-col gap-3 items-center">
+          <div className="px-6 py-4 bg-gray-50 border-t flex justify-center">
             <button
               onClick={handleBackToStore}
               className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
             >
               Volver a la Tienda
             </button>
-            
-            {paymentData && paymentStatus === 'PENDING' && (
-              <button
-                onClick={handleSimulateApproval}
-                disabled={updatingStatus}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {updatingStatus ? (
-                  <>
-                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
-                    Procesando...
-                  </>
-                ) : (
-                  <>
-                    🎯 Simular Aprobación (Testing)
-                  </>
-                )}
-              </button>
-            )}
           </div>
         </div>
       </div>
